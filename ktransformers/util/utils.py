@@ -96,6 +96,7 @@ def prefill_and_generate(model, tokenizer, inputs, max_new_tokens=10000, use_cud
     inputs = inputs.to(torch_device)
     all_cuda_device = get_all_used_cuda_device(device_map)
 
+    tokens_str = ""
     tokens = []
     
     def decode_one_tokens(cuda_graph_runner, cur_token, position_ids, cache_position, past_key_values, use_cuda_graph: bool = True):
@@ -172,9 +173,11 @@ def prefill_and_generate(model, tokenizer, inputs, max_new_tokens=10000, use_cud
 
         prefill_count = seq_length
         prefill_time = first_token_time
-        print(stream.put(next_token.item()), end="", flush=True)
+        tmp_out_str = stream.put(next_token.item())
+        print(tmp_out_str, end="", flush=True)
         generated_ids[:, seq_length] = next_token
-        tokens.append(int(next_token))
+        tokens.append(next_token.item())
+        print("the taken here is", tokens)
         inputs = torch.cat((inputs, next_token.unsqueeze(0)), dim=-1)
         cache_position = torch.tensor([seq_length], device=torch_device)
         position_ids = cache_position.unsqueeze(0)
@@ -195,10 +198,14 @@ def prefill_and_generate(model, tokenizer, inputs, max_new_tokens=10000, use_cud
             seq_length += 1
             
             if next_token[0].item() == tokenizer.eos_token_id or tokenizer.decode(next_token) == '<|im_end|>':
-                print(stream.end(), end="", flush=True)
+                tmp_out_str = stream.end()
+                print(tmp_out_str, end="", flush=True)
+                tokens_str = tokens_str + tmp_out_str
                 break
-            else:
-                print(stream.put(next_token.item()), end="", flush=True)
+            tmp_out_str = stream.put(next_token.item())
+            print(tmp_out_str, end="", flush=True)
+            
+            tokens_str  = tokens_str + tmp_out_str
             cache_position += 1
             position_ids = cache_position.unsqueeze(0)
         
@@ -216,7 +223,8 @@ def prefill_and_generate(model, tokenizer, inputs, max_new_tokens=10000, use_cud
     print(f"eval duration:        {total_time}s")
     print(f"eval rate:            {tokens_per_second} tokens/s")
 
-    return tokens
+    return tokens_str
+    
 
 class InferenceState(enum.Enum):
     UNLOAD = 0
