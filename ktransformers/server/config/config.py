@@ -13,6 +13,7 @@ import shutil
 import yaml
 
 from ktransformers.server.config.singleton import Singleton
+from typing import Optional
 
 
 class Config(metaclass=Singleton):
@@ -89,8 +90,60 @@ class Config(metaclass=Singleton):
         self.model_path: str = self.model.get("path", "")
         self.model_name: str = self.model.get("name", "")
         self.model_device: str = self.model.get("device", "cuda:0")
-        self.gguf_path: str = self.model.get("gguf_path", "")
+        self.gguf_path: Optional[str] = self.model.get(
+            "gguf_path", "/models/DeepSeek-Coder-V2-Instruct-GGUF/DeepSeek-Coder-V2-Instruct-Q4_K_M.gguf"
+        )
         self.model_cache_lens = self.model.get("cache_lens")
+        self.optimize_config_path: Optional[str] = self.model.get(
+            "optimize_config_path", "./KTransformers/optimize_config/DeepSeek-V2-Chat.json"
+        )
+        self.paged = self.model.get("paged", True)
+
+        self.total_context = self.model.get("total_context", 2**18)
+        self.max_batch_size = self.model.get("max_batch_size", 20 if self.paged else 1)
+        self.max_chunk_size = self.model.get("max_chunk_size", 2048)
+        self.max_new_tokens = self.model.get("max_new_tokens", 500)
+        self.json_mode = self.model.get("json_mode", False)
+        self.healing = self.model.get("healing", False)
+        self.ban_strings: Optional[list] = self.model.get("ban_strings", None)
+        self.gpu_split: Optional[str] = self.model.get("gpu_split", None)
+        self.length: Optional[int] = self.model.get("length", None)
+        self.rope_scale: Optional[float] = self.model.get("rope_scale", None)
+        self.rope_alpha: Optional[float] = self.model.get("rope_alpha", None)
+        self.no_flash_attn = self.model.get("no_flash_attn", False)
+        self.low_mem = self.model.get("low_mem", False)
+        self.experts_per_token: Optional[int] = self.model.get("experts_per_token", None)
+        self.load_q4 = self.model.get("load_q4", False)
+        self.fast_safetensors = self.model.get("fast_safetensors", False)
+        self.draft_model_dir: Optional[str] = self.model.get("draft_model_dir", None)
+        self.no_draft_scale = self.model.get("no_draft_scale", False)
+        self.modes = self.model.get("modes", False)
+        self.mode = self.model.get("mode", "llama")
+        self.username = self.model.get("username", "User")
+        self.botname = self.model.get("botname", "Chatbort")
+        self.system_prompt: Optional[str] = self.model.get("system_prompt", None)
+        self.temperature = self.model.get("temperature", 0.95)
+        self.smoothing_factor = self.model.get("smoothing_factor", 0.0)
+        self.dynamic_temperature: Optional[str] = self.model.get("dynamic_temperature", None)
+        self.top_k = self.model.get("top_k", 50)
+        self.top_p = self.model.get("top_p", 0.8)
+        self.top_a = self.model.get("top_a", 0.0)
+        self.skew = self.model.get("skew", 0.0)
+        self.typical = self.model.get("typical", 0.0)
+        self.repetition_penalty = self.model.get("repetition_penalty", 1.01)
+        self.frequency_penalty = self.model.get("frequency_penalty", 0.0)
+        self.presence_penalty = self.model.get("presence_penalty", 0.0)
+        self.max_response_tokens = self.model.get("max_response_tokens", 300)
+        self.response_chunk = self.model.get("response_chunk", 250)
+        self.no_code_formatting = self.model.get("no_code_formatting", False)
+        self.cache_8bit = self.model.get("cache_8bit", False)
+        self.cache_q4 = self.model.get("cache_q4", True)
+        self.ngram_decoding = self.model.get("ngram_decoding", False)
+        self.print_timings = self.model.get("print_timings", False)
+        self.amnesia = self.model.get("amnesia", False)
+        self.batch_size = self.model.get("batch_size", 1)
+        self.cache_lens = self.model.get("cache_lens", 4096)
+        self.device = self.model.get("device", "cuda:2")
 
         # web config
         self.web: dict = cfg.get("web", {})
