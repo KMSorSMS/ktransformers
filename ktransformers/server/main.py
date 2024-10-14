@@ -7,7 +7,7 @@ import argparse
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from ktransformers.server.config.config import Config
-from ktransformers.server.utils.create_interface import  create_interface
+from ktransformers.server.utils.create_interface import create_interface
 from ktransformers.server.backend.args import default_args
 from fastapi.openapi.utils import get_openapi
 
@@ -44,8 +44,11 @@ def create_app():
         mount_index_routes(app)
     return app
 
+
 def update_web_port(config_file: str):
-    ip_port_pattern = r"(localhost|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)):[0-9]{1,5}"
+    ip_port_pattern = (
+        r"(localhost|((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)):[0-9]{1,5}"
+    )
     with open(config_file, "r", encoding="utf-8") as f_cfg:
         web_config = f_cfg.read()
     ip_port = "localhost:" + str(Config().server_port)
@@ -70,14 +73,15 @@ def mount_index_routes(app: FastAPI):
 
 def run_api(app, host, port, **kwargs):
     if kwargs.get("ssl_keyfile") and kwargs.get("ssl_certfile"):
-        uvicorn.run(app,
-                    host=host,
-                    port=port,
-                    ssl_keyfile=kwargs.get("ssl_keyfile"),
-                    ssl_certfile=kwargs.get("ssl_certfile"),
-                    )
+        uvicorn.run(
+            app,
+            host=host,
+            port=port,
+            ssl_keyfile=kwargs.get("ssl_keyfile"),
+            ssl_certfile=kwargs.get("ssl_certfile"),
+        )
     else:
-        uvicorn.run(app, host=host, port=port, log_level='debug')
+        uvicorn.run(app, host=host, port=port, log_level="debug")
 
 
 def custom_openapi(app):
@@ -90,16 +94,14 @@ def custom_openapi(app):
         description="We provided chat completion and openai assistant interfaces.",
         routes=app.routes,
     )
-    openapi_schema["info"]["x-logo"] = {
-        "url": "https://kvcache.ai/media/icon_1.png"
-    }
+    openapi_schema["info"]["x-logo"] = {"url": "https://kvcache.ai/media/icon_1.png"}
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
+
 def main():
     cfg = Config()
-    parser = argparse.ArgumentParser(prog='kvcache.ai',
-                                     description='Ktransformers')
+    parser = argparse.ArgumentParser(prog="kvcache.ai", description="Ktransformers")
     parser.add_argument("--host", type=str, default="0.0.0.0")
     parser.add_argument("--port", type=int, default=cfg.server_port)
     parser.add_argument("--ssl_keyfile", type=str)
@@ -128,15 +130,17 @@ def main():
     default_args.device = args.device
     default_args.gguf_path = args.gguf_path
     default_args.optimize_config_path = args.optimize_config_path
-    
+
     app = create_app()
     custom_openapi(app)
     create_interface(config=cfg, default_args=default_args)
-    run_api(app=app,
-            host=args.host,
-            port=args.port,
-            ssl_keyfile=args.ssl_keyfile,
-            ssl_certfile=args.ssl_certfile,)
+    run_api(
+        app=app,
+        host=args.host,
+        port=args.port,
+        ssl_keyfile=args.ssl_keyfile,
+        ssl_certfile=args.ssl_certfile,
+    )
 
 
 if __name__ == "__main__":

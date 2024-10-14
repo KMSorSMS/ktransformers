@@ -1,14 +1,14 @@
 # coding=utf-8
-'''
-Description  : 
+"""
+Description  :
 Author       : kkk1nak0
 Date         : 2024-07-29 02:58:57
 Version      : 1.0.0
 LastEditors  : kkk1nak0
 LastEditTime : 2024-08-02 06:08:34
-'''
+"""
 
-# Adapted from 
+# Adapted from
 # https://github.com/huggingface/transformers/blob/main/src/transformers/models/mixtral/modeling_mixtral.py
 # Copyright 2023 Mistral AI and the HuggingFace Inc. team. All rights reserved.
 # Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
@@ -31,7 +31,7 @@ LastEditTime : 2024-08-02 06:08:34
 # limitations under the License.
 """PyTorch Mixtral model."""
 
-import inspect 
+import inspect
 import math
 from typing import List, Optional, Tuple, Union
 
@@ -201,7 +201,7 @@ class MixtralRMSNorm(nn.Module):
 class MixtralRotaryEmbedding(nn.Module):
     def __init__(self, dim, max_position_embeddings=2048, base=10000, device=None):
         super().__init__()
-        
+
         self.dim = dim
         self.max_position_embeddings = max_position_embeddings
         self.base = base
@@ -453,8 +453,8 @@ class MixtralFlashAttention2(MixtralAttention):
 
         if not _flash_supports_window_size:
             logger.warning_once(
-                "The current flash attention version does not support sliding window attention, for a more memory efficient implementation"
-                " make sure to upgrade flash-attn library."
+                "The current flash attention version does not support sliding window attention, for a more memory"
+                " efficient implementation make sure to upgrade flash-attn library."
             )
 
         if past_key_value is not None:
@@ -475,8 +475,8 @@ class MixtralFlashAttention2(MixtralAttention):
 
                 if past_key.shape[-2] != self.config.sliding_window - 1:
                     raise ValueError(
-                        f"past key must have a shape of (`batch_size, num_heads, self.config.sliding_window-1, head_dim`), got"
-                        f" {past_key.shape}"
+                        "past key must have a shape of (`batch_size, num_heads, self.config.sliding_window-1,"
+                        f" head_dim`), got {past_key.shape}"
                     )
 
                 if attention_mask is not None:
@@ -511,8 +511,8 @@ class MixtralFlashAttention2(MixtralAttention):
                 target_dtype = self.q_proj.weight.dtype
 
             logger.warning_once(
-                f"The input hidden states seems to be silently casted in float32, this might be related to"
-                f" the fact you have upcasted embedding or layer norm layers in float32. We will cast back the input in"
+                "The input hidden states seems to be silently casted in float32, this might be related to"
+                " the fact you have upcasted embedding or layer norm layers in float32. We will cast back the input in"
                 f" {target_dtype}."
             )
 
@@ -544,7 +544,6 @@ class MixtralFlashAttention2(MixtralAttention):
             attn_weights = None
 
         return attn_output, attn_weights, past_key_value
-    
 
     def _flash_attention_forward(
         self,
@@ -575,9 +574,9 @@ class MixtralFlashAttention2(MixtralAttention):
                 position of padding tokens and 1 for the position of non-padding tokens.
             dropout (`float`):
                 Attention dropout
-            
+
         """
-        
+
         # Decide whether to use SWA or not by layer index.
         # if use_sliding_windows and self.layer_idx >= self.config.max_window_layers:
         #     use_sliding_windows = False
@@ -633,7 +632,7 @@ class MixtralFlashAttention2(MixtralAttention):
                         cache_seqlens=position_ids,
                         softmax_scale=softmax_scale,
                         causal=is_causal,
-                    )   
+                    )
                 else:
                     attn_output = flash_attn_func(
                         query_states,
@@ -672,9 +671,7 @@ class MixtralFlashAttention2(MixtralAttention):
         value_layer = index_first_axis(value_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k)
 
         if query_length == kv_seq_len:
-            query_layer = index_first_axis(
-                query_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k
-            )
+            query_layer = index_first_axis(query_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k)
             cu_seqlens_q = cu_seqlens_k
             max_seqlen_in_batch_q = max_seqlen_in_batch_k
             indices_q = indices_k
@@ -700,7 +697,6 @@ class MixtralFlashAttention2(MixtralAttention):
         )
 
 
-
 # copied from transformers.models.mistral.modeling_mistral.MistralSdpaAttention with Mistral->Mixtral
 # TODO @longjie no longer copied from Mistral after static cache
 class MixtralSdpaAttention(MixtralAttention):
@@ -724,8 +720,10 @@ class MixtralSdpaAttention(MixtralAttention):
         if output_attentions:
             # TODO: Improve this warning with e.g. `model.config.attn_implementation = "manual"` once this is implemented.
             logger.warning_once(
-                "MixtralModel is using MixtralSdpaAttention, but `torch.nn.functional.scaled_dot_product_attention` does not support `output_attentions=True`. Falling back to the manual attention implementation, "
-                'but specifying the manual implementation will be required from Transformers version v5.0.0 onwards. This warning can be removed using the argument `attn_implementation="eager"` when loading the model.'
+                "MixtralModel is using MixtralSdpaAttention, but `torch.nn.functional.scaled_dot_product_attention`"
+                " does not support `output_attentions=True`. Falling back to the manual attention implementation, but"
+                " specifying the manual implementation will be required from Transformers version v5.0.0 onwards. This"
+                ' warning can be removed using the argument `attn_implementation="eager"` when loading the model.'
             )
             return super().forward(
                 hidden_states=hidden_states,
@@ -1162,8 +1160,9 @@ class MixtralModel(MixtralPreTrainedModel):
             use_legacy_cache = True
             past_key_values = DynamicCache.from_legacy_cache(past_key_values)
             logger.warning_once(
-                "We detected that you are passing `past_key_values` as a tuple and this is deprecated and will be removed in v4.43. "
-                "Please use an appropriate `Cache` class (https://huggingface.co/docs/transformers/v4.41.3/en/internal/generation_utils#transformers.Cache)"
+                "We detected that you are passing `past_key_values` as a tuple and this is deprecated and will be"
+                " removed in v4.43. Please use an appropriate `Cache` class"
+                " (https://huggingface.co/docs/transformers/v4.41.3/en/internal/generation_utils#transformers.Cache)"
             )
 
         if inputs_embeds is None:
@@ -1305,9 +1304,7 @@ class MixtralModel(MixtralPreTrainedModel):
                 raise ValueError("Custom 4D attention mask should be passed in inverted form with max==0`")
             causal_mask = attention_mask
         else:
-            causal_mask = torch.full(
-                (sequence_length, target_length), fill_value=min_dtype, dtype=dtype, device=device
-            )
+            causal_mask = torch.full((sequence_length, target_length), fill_value=min_dtype, dtype=dtype, device=device)
             if sequence_length != 1:
                 causal_mask = torch.triu(causal_mask, diagonal=1)
             causal_mask *= torch.arange(target_length, device=device) > cache_position.reshape(-1, 1)
@@ -1513,16 +1510,14 @@ class MixtralForCausalLM(MixtralPreTrainedModel):
         else:
             model_inputs = {"input_ids": input_ids.contiguous()}  # `contiguous()` needed for compilation use cases
 
-        model_inputs.update(
-            {
-                "position_ids": position_ids,
-                "cache_position": cache_position,
-                "past_key_values": past_key_values,
-                "use_cache": use_cache,
-                "attention_mask": attention_mask,
-                "output_router_logits": output_router_logits,
-            }
-        )
+        model_inputs.update({
+            "position_ids": position_ids,
+            "cache_position": cache_position,
+            "past_key_values": past_key_values,
+            "use_cache": use_cache,
+            "attention_mask": attention_mask,
+            "output_router_logits": output_router_logits,
+        })
         return model_inputs
 
 

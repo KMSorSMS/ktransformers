@@ -1,4 +1,6 @@
 from typing import Any, List, Optional, Set
+
+
 class TextStreamer:
 
     def __init__(self, tokenizer: "AutoTokenizer", skip_prompt: bool = False, **decode_kwargs):
@@ -15,13 +17,12 @@ class TextStreamer:
         self.token_cache = []
         self.print_len = 0
 
-    def put(self, value)->Optional[str]:
+    def put(self, value) -> Optional[str]:
         """
         Receives tokens, decodes them, and prints them to stdout as soon as they form entire words.
-        """        
-        if not isinstance(value,int):
+        """
+        if not isinstance(value, int):
             raise ValueError("TextStreamer only supports batch size 1, and int type input")
-
 
         if self.skip_prompt and self.next_tokens_are_prompt:
             self.next_tokens_are_prompt = False
@@ -29,7 +30,7 @@ class TextStreamer:
 
         # Add the new token to the cache and decodes the entire thing.
         self.token_cache.append(value)
-        text = self.tokenizer.decode(self.token_cache, skip_special_tokens=True,**self.decode_kwargs)
+        text = self.tokenizer.decode(self.token_cache, skip_special_tokens=True, **self.decode_kwargs)
 
         # After the symbol for a new line, we flush the cache.
         if text.endswith("\n"):
@@ -46,7 +47,7 @@ class TextStreamer:
             self.print_len += len(printable_text)
         return printable_text
 
-    def end(self)->Optional[str]:
+    def end(self) -> Optional[str]:
         """Flushes any remaining cache and prints a newline to stdout."""
         # Flush the cache, if it exists
         if len(self.token_cache) > 0:
@@ -58,7 +59,7 @@ class TextStreamer:
 
         self.next_tokens_are_prompt = True
         return printable_text
-   
+
     def _is_chinese_char(self, cp):
         """Checks whether CP is the codepoint of a CJK character."""
         # This defines a "chinese character" as anything in the CJK Unicode block:

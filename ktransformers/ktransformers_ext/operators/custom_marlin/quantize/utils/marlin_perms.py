@@ -1,4 +1,5 @@
 """This file is used for /tests and /benchmarks"""
+
 from typing import Dict, List
 
 import numpy
@@ -20,10 +21,10 @@ def get_perms(num_bits: int):
         col = i // 4
         for block in [0, 1]:
             for row in [
-                    2 * (i % 4),
-                    2 * (i % 4) + 1,
-                    2 * (i % 4 + 4),
-                    2 * (i % 4 + 4) + 1,
+                2 * (i % 4),
+                2 * (i % 4) + 1,
+                2 * (i % 4 + 4),
+                2 * (i % 4 + 4) + 1,
             ]:
                 perm1.append(16 * row + col + 8 * block)
         for j in range(4):
@@ -45,8 +46,7 @@ def get_perms(num_bits: int):
         scale_perm.extend([i + 8 * j for j in range(8)])
     scale_perm_single: List[int] = []
     for i in range(4):
-        scale_perm_single.extend(
-            [2 * i + j for j in [0, 1, 8, 9, 16, 17, 24, 25]])
+        scale_perm_single.extend([2 * i + j for j in [0, 1, 8, 9, 16, 17, 24, 25]])
     return perm, scale_perm, scale_perm_single
 
 

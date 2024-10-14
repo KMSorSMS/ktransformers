@@ -1,8 +1,8 @@
 """
-Description  :  
+Description  :
 Author       : Boxin Zhang
 Version      : 0.1.0
-Copyright (c) 2024 by KVCache.AI, All Rights Reserved. 
+Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 """
 
 from torch import nn
@@ -35,12 +35,8 @@ class RotaryEmbedding(BaseInjectedModule, DeepseekV2RotaryEmbedding):
         prefill_device: str = "cuda",
         **kwargs,
     ):
-        BaseInjectedModule.__init__(
-            self, key, gguf_loader, config, orig_module, generate_device, **kwargs
-        )
-        self.orig_module.__init__(
-            orig_module.dim, orig_module.max_position_embeddings, orig_module.base
-        )
+        BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, generate_device, **kwargs)
+        self.orig_module.__init__(orig_module.dim, orig_module.max_position_embeddings, orig_module.base)
         self.generate_device = generate_device
         self.prefill_device = prefill_device
 
@@ -64,9 +60,7 @@ class RotaryEmbeddingV2(BaseInjectedModule, LlamaRotaryEmbedding):
         prefill_device: str = "cuda",
         **kwargs,
     ):
-        BaseInjectedModule.__init__(
-            self, key, gguf_loader, config, orig_module, generate_device, **kwargs
-        )
+        BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, generate_device, **kwargs)
         self.orig_module.__init__(
             orig_module.dim,
             orig_module.max_position_embeddings,
@@ -90,6 +84,7 @@ class RotaryEmbeddingV2(BaseInjectedModule, LlamaRotaryEmbedding):
             self.orig_module.config,
         )
 
+
 class YarnRotaryEmbedding(BaseInjectedModule, DeepseekV2YarnRotaryEmbedding):
     def __init__(
         self,
@@ -102,9 +97,7 @@ class YarnRotaryEmbedding(BaseInjectedModule, DeepseekV2YarnRotaryEmbedding):
         prefill_device: str = "cuda",
         **kwargs,
     ):
-        BaseInjectedModule.__init__(
-            self, key, gguf_loader, config, orig_module, generate_device, **kwargs
-        )
+        BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, generate_device, **kwargs)
         self.orig_module.__init__(
             orig_module.dim,
             orig_module.max_position_embeddings,
@@ -135,9 +128,7 @@ class YarnRotaryEmbedding(BaseInjectedModule, DeepseekV2YarnRotaryEmbedding):
         )
 
 
-class DynamicNTKScalingRotaryEmbedding(
-    BaseInjectedModule, LlamaDynamicNTKScalingRotaryEmbedding
-):
+class DynamicNTKScalingRotaryEmbedding(BaseInjectedModule, LlamaDynamicNTKScalingRotaryEmbedding):
     def __init__(
         self,
         key: str,
@@ -147,9 +138,7 @@ class DynamicNTKScalingRotaryEmbedding(
         device: str = "cuda",
         **kwargs,
     ):
-        BaseInjectedModule.__init__(
-            self, key, gguf_loader, config, orig_module, device, **kwargs
-        )
+        BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, device, **kwargs)
         self.orig_module.__init__(
             orig_module.dim,
             orig_module.max_position_embeddings,

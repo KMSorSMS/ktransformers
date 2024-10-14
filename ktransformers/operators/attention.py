@@ -1,9 +1,10 @@
-'''
-Description  :  
+"""
+Description  :
 Author       : Boxin Zhang
 Version      : 0.1.0
-Copyright (c) 2024 by KVCache.AI, All Rights Reserved. 
-'''
+Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
+"""
+
 import torch
 from torch import nn
 import warnings
@@ -19,34 +20,49 @@ from ktransformers.util.custom_gguf import GGUFLoader
 import logging
 from transformers.configuration_utils import PretrainedConfig
 from transformers.cache_utils import Cache
+
 logger = logging.getLogger("attention")
+
+
 class KDeepseekV2Attention(BaseInjectedModule, DeepseekV2Attention):
     """Multi-headed attention from 'Attention Is All You Need' paper"""
+
     attn_mask: Optional[torch.Tensor] = None
 
-    def __init__(self,
-                 key: str,
-                 gguf_loader : GGUFLoader,
-                 config: PretrainedConfig,
-                 orig_module: nn.Module,
-                 device: str = "cuda",
-                 chunck_size: int = 1000,
-                 **kwargs):
+    def __init__(
+        self,
+        key: str,
+        gguf_loader: GGUFLoader,
+        config: PretrainedConfig,
+        orig_module: nn.Module,
+        device: str = "cuda",
+        chunck_size: int = 1000,
+        **kwargs,
+    ):
         BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, device, **kwargs)
-        self.orig_module.__init__(orig_module.config,
-            orig_module.layer_idx)
-        self.chunck_size = chunck_size # TODO, generate chunck_size automatically.
+        self.orig_module.__init__(orig_module.config, orig_module.layer_idx)
+        self.chunck_size = chunck_size  # TODO, generate chunck_size automatically.
 
     def get_absorbed(self) -> Tuple[torch.Tensor, torch.Tensor]:
-        if not (hasattr(self, 'q_absorb') and hasattr(self, 'out_absorb')):
+        if not (hasattr(self, "q_absorb") and hasattr(self, "out_absorb")):
             kv_b_proj = self.kv_b_proj.weight.view(self.num_heads, -1, self.kv_lora_rank)
-            q_absorb = kv_b_proj[:, :self.qk_nope_head_dim, :].reshape(-1, self.kv_lora_rank)
-            out_absorb = kv_b_proj[:, self.qk_nope_head_dim:, :].reshape(-1, self.kv_lora_rank)
-            self.q_absorb = nn.Linear(self.kv_lora_rank, self.num_heads * self.qk_nope_head_dim, 
-                                      bias=False, dtype=q_absorb.dtype, device=q_absorb.device)
+            q_absorb = kv_b_proj[:, : self.qk_nope_head_dim, :].reshape(-1, self.kv_lora_rank)
+            out_absorb = kv_b_proj[:, self.qk_nope_head_dim :, :].reshape(-1, self.kv_lora_rank)
+            self.q_absorb = nn.Linear(
+                self.kv_lora_rank,
+                self.num_heads * self.qk_nope_head_dim,
+                bias=False,
+                dtype=q_absorb.dtype,
+                device=q_absorb.device,
+            )
             self.q_absorb.weight.data = q_absorb
-            self.out_absorb = nn.Linear(self.kv_lora_rank, self.num_heads * self.v_head_dim, 
-                                        bias=False, dtype=out_absorb.dtype, device=out_absorb.device)
+            self.out_absorb = nn.Linear(
+                self.kv_lora_rank,
+                self.num_heads * self.v_head_dim,
+                bias=False,
+                dtype=out_absorb.dtype,
+                device=out_absorb.device,
+            )
             self.out_absorb.weight.data = out_absorb
             del self.orig_module.kv_b_proj
         q_absorb = self.q_absorb.weight.view(self.num_heads, self.qk_nope_head_dim, self.kv_lora_rank)
@@ -62,7 +78,7 @@ class KDeepseekV2Attention(BaseInjectedModule, DeepseekV2Attention):
         output_attentions: bool = False,
         use_cache: bool = False,
         cache_position: Optional[torch.LongTensor] = None,
-        **kwargs
+        **kwargs,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         bsz, q_len, _ = hidden_states.size()
         if self.q_lora_rank is None:
@@ -70,14 +86,10 @@ class KDeepseekV2Attention(BaseInjectedModule, DeepseekV2Attention):
         else:
             q = self.q_b_proj(self.q_a_layernorm(self.q_a_proj(hidden_states)))
         q = q.view(bsz, q_len, self.num_heads, self.q_head_dim).transpose(1, 2)
-        q_nope, q_pe = torch.split(
-            q, [self.qk_nope_head_dim, self.qk_rope_head_dim], dim=-1
-        )
+        q_nope, q_pe = torch.split(q, [self.qk_nope_head_dim, self.qk_rope_head_dim], dim=-1)
 
         compressed_kv = self.kv_a_proj_with_mqa(hidden_states)
-        compressed_kv, k_pe = torch.split(
-            compressed_kv, [self.kv_lora_rank, self.qk_rope_head_dim], dim=-1
-        )
+        compressed_kv, k_pe = torch.split(compressed_kv, [self.kv_lora_rank, self.qk_rope_head_dim], dim=-1)
         compressed_kv = self.kv_a_layernorm(compressed_kv)
         k_pe = k_pe.view(bsz, q_len, 1, self.qk_rope_head_dim).transpose(1, 2)
 
@@ -99,13 +111,15 @@ class KDeepseekV2Attention(BaseInjectedModule, DeepseekV2Attention):
             compressed_kv = compressed_kv.unsqueeze(1)
             k_pe, compressed_kv = past_key_value.update(k_pe, compressed_kv, self.layer_idx, cache_kwargs)
             compressed_kv = compressed_kv.squeeze(1)
-            #if cache_position is not None:  
+            # if cache_position is not None:
             #    compressed_kv = compressed_kv[:,: cache_position[-1] + 1,:]
             #    k_pe = k_pe[:,:,: cache_position[-1] + 1,:]
         q_absorb, out_absorb = self.get_absorbed()
 
         q_nope = torch.matmul(q_nope, q_absorb)
-        attn_weights = (torch.matmul(q_pe, k_pe.mT) + torch.matmul(q_nope, compressed_kv.unsqueeze(-3).mT)) * self.softmax_scale
+        attn_weights = (
+            torch.matmul(q_pe, k_pe.mT) + torch.matmul(q_nope, compressed_kv.unsqueeze(-3).mT)
+        ) * self.softmax_scale
         """
         if attn_weights.size() != (bsz, self.num_heads, q_len, kv_seq_len):
             raise ValueError(
@@ -121,19 +135,15 @@ class KDeepseekV2Attention(BaseInjectedModule, DeepseekV2Attention):
                     f"Attention mask should be of size {(bsz, 1, q_len, kv_seq_len)}, but is {attention_mask.size()}"
                 )
             """
-            #causal_mask = attention_mask[:, :, :, : kv_seq_len]
+            # causal_mask = attention_mask[:, :, :, : kv_seq_len]
             attn_weights = attn_weights + attention_mask
 
         # upcast attention to fp32
-        attn_weights = nn.functional.softmax(
-            attn_weights, dim=-1, dtype=torch.float32
-        ).to(q_pe.dtype)
-        attn_weights = nn.functional.dropout(
-            attn_weights, p=self.attention_dropout, training=self.training
-        )
-        attn_output = torch.einsum('bhql,blc->bhqc', attn_weights, compressed_kv)
+        attn_weights = nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(q_pe.dtype)
+        attn_weights = nn.functional.dropout(attn_weights, p=self.attention_dropout, training=self.training)
+        attn_output = torch.einsum("bhql,blc->bhqc", attn_weights, compressed_kv)
 
-        attn_output = torch.matmul(attn_output, out_absorb.mT) 
+        attn_output = torch.matmul(attn_output, out_absorb.mT)
 
         if attn_output.size() != (bsz, self.num_heads, q_len, self.v_head_dim):
             raise ValueError(
@@ -162,58 +172,65 @@ class KDeepseekV2Attention(BaseInjectedModule, DeepseekV2Attention):
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
         if "padding_mask" in kwargs:
             warnings.warn(
-                "Passing `padding_mask` is deprecated and will be removed in v4.37. Please make sure use `attention_mask` instead.`"
+                "Passing `padding_mask` is deprecated and will be removed in v4.37. Please make sure use"
+                " `attention_mask` instead.`"
             )
         bsz, q_len, _ = hidden_states.size()
-        
+
         if q_len <= self.chunck_size:
             return self.forward_chunck(
-                            hidden_states,
-                            attention_mask,
-                            position_ids,
-                            past_key_value,
-                            output_attentions,
-                            use_cache,
-                            cache_position,
-                            **kwargs
-                        )
+                hidden_states,
+                attention_mask,
+                position_ids,
+                past_key_value,
+                output_attentions,
+                use_cache,
+                cache_position,
+                **kwargs,
+            )
 
         assert output_attentions == False, "output_attentions is not supported when using chunked attention"
         attn_output = None
         cur_idx = 0
         while cur_idx < q_len:
             if attention_mask is not None:
-                chunk_mask = attention_mask[:, :, cur_idx:min(cur_idx + self.chunck_size, q_len), ...]
+                chunk_mask = attention_mask[:, :, cur_idx : min(cur_idx + self.chunck_size, q_len), ...]
             else:
                 # generate chunk_mask automatically.
-                self.attn_mask = \
-                    torch.zeros(1, 1, self.chunck_size, past_key_value.max_cache_len, device=hidden_states.device) \
-                        if self.attn_mask is None \
-                            else self.attn_mask
-                self.attn_mask[:, :, :, cur_idx:min(cur_idx+self.chunck_size, past_key_value.max_cache_len)] = \
-                    -1e+38 * torch.triu(torch.ones(self.chunck_size, self.chunck_size, device=hidden_states.device), diagonal=1)\
-                        [:,:min(self.chunck_size, min(past_key_value.max_cache_len-cur_idx, self.chunck_size))]
-                self.attn_mask[:, :, :, cur_idx+self.chunck_size:] = -1e+38
+                self.attn_mask = (
+                    torch.zeros(1, 1, self.chunck_size, past_key_value.max_cache_len, device=hidden_states.device)
+                    if self.attn_mask is None
+                    else self.attn_mask
+                )
+                self.attn_mask[:, :, :, cur_idx : min(cur_idx + self.chunck_size, past_key_value.max_cache_len)] = (
+                    -1e38
+                    * torch.triu(
+                        torch.ones(self.chunck_size, self.chunck_size, device=hidden_states.device), diagonal=1
+                    )[:, : min(self.chunck_size, min(past_key_value.max_cache_len - cur_idx, self.chunck_size))]
+                )
+                self.attn_mask[:, :, :, cur_idx + self.chunck_size :] = -1e38
                 self.attn_mask[:, :, :, :cur_idx] = 0
-                chunk_mask = torch.narrow(self.attn_mask, 2, 0, min(self.chunck_size, q_len-cur_idx))
+                chunk_mask = torch.narrow(self.attn_mask, 2, 0, min(self.chunck_size, q_len - cur_idx))
 
             cur_output, _, _ = self.forward_chunck(
-                            hidden_states[:, cur_idx:min(cur_idx + self.chunck_size, q_len), ...],
-                            chunk_mask,
-                            position_ids[:, cur_idx:min(cur_idx + self.chunck_size, q_len)],
-                            past_key_value,
-                            output_attentions,
-                            use_cache,
-                            cache_position[cur_idx:min(cur_idx + self.chunck_size, q_len)],
-                            **kwargs
-                        )
+                hidden_states[:, cur_idx : min(cur_idx + self.chunck_size, q_len), ...],
+                chunk_mask,
+                position_ids[:, cur_idx : min(cur_idx + self.chunck_size, q_len)],
+                past_key_value,
+                output_attentions,
+                use_cache,
+                cache_position[cur_idx : min(cur_idx + self.chunck_size, q_len)],
+                **kwargs,
+            )
             cur_idx += self.chunck_size
             if attn_output is None:
                 attn_output = cur_output
             else:
                 attn_output = torch.cat((attn_output, cur_output), dim=-2)
-                
+
         return attn_output, None, past_key_value
+
+
 def rotate_half(x):
     """Rotates half the hidden dims of the input."""
     x1 = x[..., : x.shape[-1] // 2]
@@ -221,21 +238,21 @@ def rotate_half(x):
     return torch.cat((-x2, x1), dim=-1)
 
 
-
-
 class KLlamaAttention(BaseInjectedModule):
     """Multi-headed attention from 'Attention Is All You Need' paper"""
 
-    def __init__(self,
-                 key: str,
-                 gguf_loader : GGUFLoader,
-                 config: PretrainedConfig,
-                 orig_module: nn.Module,
-                 device: str = "cuda",
-                 **kwargs):
+    def __init__(
+        self,
+        key: str,
+        gguf_loader: GGUFLoader,
+        config: PretrainedConfig,
+        orig_module: nn.Module,
+        device: str = "cuda",
+        **kwargs,
+    ):
         BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, device, **kwargs)
-        self.orig_module.__init__(orig_module.config,
-            orig_module.layer_idx)
+        self.orig_module.__init__(orig_module.config, orig_module.layer_idx)
+
     def apply_rotary_pos_emb(self, q, k, cos, sin, position_ids=None, unsqueeze_dim=1):
         """Applies Rotary Position Embedding to the query and key tensors.
 
@@ -261,6 +278,7 @@ class KLlamaAttention(BaseInjectedModule):
         q_embed = (q * cos) + (rotate_half(q) * sin)
         k_embed = (k * cos) + (rotate_half(k) * sin)
         return q_embed, k_embed
+
     def forward(
         self,
         hidden_states: torch.Tensor,
@@ -327,7 +345,6 @@ class KLlamaAttention(BaseInjectedModule):
             value_states.transpose(1, 2).to(torch.float16),
             mode="prefill" if q_len > 1 else "generate",
         )
-
 
         if attn_output.size() != (bsz, self.num_heads, q_len, self.head_dim):
             raise ValueError(

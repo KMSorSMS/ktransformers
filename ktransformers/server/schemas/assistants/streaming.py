@@ -9,7 +9,14 @@ from ktransformers.server.schemas.assistants.runs import RunStreamResponse
 from ktransformers.server.schemas.endpoints.chat import ChatCompletionChunk
 from ktransformers.server.config.log import logger
 from ktransformers.server.schemas.base import Object
-from ktransformers.server.schemas.assistants.messages import ContentType, ImageFileObject, ImageUrlObject, MessageObject, Text, TextObject
+from ktransformers.server.schemas.assistants.messages import (
+    ContentType,
+    ImageFileObject,
+    ImageUrlObject,
+    MessageObject,
+    Text,
+    TextObject,
+)
 
 
 class TextObjectWithIndex(TextObject):
@@ -24,8 +31,7 @@ class ImageUrlObjectWithIndex(ImageUrlObject):
     index: int
 
 
-ContentWithIndex = Union[TextObjectWithIndex,
-                         ImageFileObjectWithIndex, ImageUrlObjectWithIndex]
+ContentWithIndex = Union[TextObjectWithIndex, ImageFileObjectWithIndex, ImageUrlObjectWithIndex]
 
 
 class MessageDeltaImpl(BaseModel):
@@ -47,8 +53,7 @@ def text_delta(index: int, text: str):
 def append_message_delta(self: MessageObject, text: str):
 
     if len(self.content) == 0:
-        self.content.append(TextObject(type=ContentType.text,
-                            text=Text(value=''), delta_index=0))
+        self.content.append(TextObject(type=ContentType.text, text=Text(value=""), delta_index=0))
 
     text_object: TextObject = self.content[0]
     if text_object.filter_append(text):
@@ -71,7 +76,7 @@ class RunStepDelta(Object):
         return f"event: thread.run.step.delta\ndata: {self.model_dump_json()}\n\n"
 
 
-class Done():
+class Done:
     def to_stream_reply(self):
         return f"event: done\ndata: [DONE]\n\n"
 
@@ -99,7 +104,12 @@ async def to_stream_reply(async_events: AsyncIterable):
 
 async def filter_api_event(async_events: AsyncIterable):
     async for event in async_events:
-        if isinstance(event, MessageDelta) or isinstance(event, RunStepDelta) or isinstance(event, RunStreamResponse) or isinstance(event, Done):
+        if (
+            isinstance(event, MessageDelta)
+            or isinstance(event, RunStepDelta)
+            or isinstance(event, RunStreamResponse)
+            or isinstance(event, Done)
+        ):
             yield event
 
 
@@ -118,15 +128,23 @@ async def filter_by_types(async_events: AsyncIterable, types: List):
 
 
 def api_stream_response(request: Request, async_events: AsyncIterable):
-    return StreamingResponse(check_client_link(request, to_stream_reply(add_done(filter_api_event(async_events)))), media_type="text/event-stream")
+    return StreamingResponse(
+        check_client_link(request, to_stream_reply(add_done(filter_api_event(async_events)))),
+        media_type="text/event-stream",
+    )
 
 
 def chat_stream_response(request: Request, async_events: AsyncIterable):
-    return StreamingResponse(check_client_link(request, to_stream_reply(add_done(filter_chat_chunk(async_events)))), media_type="text/event-stream")
+    return StreamingResponse(
+        check_client_link(request, to_stream_reply(add_done(filter_chat_chunk(async_events)))),
+        media_type="text/event-stream",
+    )
 
 
 def stream_response(request: Request, async_events: AsyncIterable):
-    return StreamingResponse(check_client_link(request, to_stream_reply(add_done(async_events))), media_type="text/event-stream")
+    return StreamingResponse(
+        check_client_link(request, to_stream_reply(add_done(async_events))), media_type="text/event-stream"
+    )
 
 
 def check_link_response(request: Request, async_events: AsyncIterable):
@@ -144,6 +162,7 @@ def wrap_async_generator_into_queue(async_events: AsyncIterable) -> asyncio.Queu
             await asyncio.sleep(0)
         # logger.debug(f'put: None')
         await queue.put(None)
+
     asyncio.create_task(inner())
     return queue
 
@@ -153,7 +172,7 @@ async def unwrap_async_queue(queue: asyncio.Queue) -> AsyncIterable:
         events = [await queue.get()]
         events.extend([queue.get_nowait() for _ in range(queue.qsize())])
 
-        logger.debug(f'getting {len(events)} events')
+        logger.debug(f"getting {len(events)} events")
         for event in events:
             if event is None:
                 break

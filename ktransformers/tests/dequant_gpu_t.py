@@ -1,7 +1,9 @@
-import os 
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 # add path
 import sys
+
 sys.path.append("../..")
 import pycuda.autoinit
 import pycuda.driver as cuda
@@ -12,6 +14,7 @@ from ktransformers.operators.experts import KTransformersExperts, KExpertsTorch
 from ktransformers.util.custom_gguf import GGUFLoader, dequantize_q4_k_gpu, dequantize_q4_k
 import torch
 import KTransformersOps
+
 torch.set_default_dtype(torch.bfloat16)
 import time
 from transformers import (
@@ -25,7 +28,7 @@ target = "ffn_up_exps.weight"
 
 data = gguf_config.get_mmap_tensor(key + target)
 
-_, factors, offsets, qs1, qs2= dequantize_q4_k(data)
+_, factors, offsets, qs1, qs2 = dequantize_q4_k(data)
 factors_cpu = torch.from_numpy(factors)
 offsets_cpu = torch.from_numpy(offsets)
 qs1_cpu = torch.from_numpy(qs1)

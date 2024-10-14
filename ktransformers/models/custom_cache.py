@@ -1,8 +1,9 @@
-'''
-Description  :  
+"""
+Description  :
 Author       : Boxin Zhang
 Version      : 0.1.0
-'''
+"""
+
 # Adapted from
 # https://github.com/huggingface/transformers/blob/v4.41.2/src/transformers/cache_utils.py
 # Copyright 2018- The Hugging Face team. All rights reserved.
@@ -11,6 +12,8 @@ import torch
 import transformers
 from transformers import Cache, PretrainedConfig
 from typing import List, Optional, Dict, Any, Tuple
+
+
 class StaticCache(transformers.StaticCache):
     """
     Static Cache class to be used with `torch.compile(model)`.
@@ -29,7 +32,9 @@ class StaticCache(transformers.StaticCache):
             The default `dtype` to use when initializing the layer.
     """
 
-    def __init__(self, config: PretrainedConfig, max_batch_size: int, max_cache_len: int, device: torch.device| dict, dtype=None) -> None:
+    def __init__(
+        self, config: PretrainedConfig, max_batch_size: int, max_cache_len: int, device: torch.device | dict, dtype=None
+    ) -> None:
         Cache.__init__(self)
         self.max_batch_size = max_batch_size
         self.max_cache_len = config.max_position_embeddings if max_cache_len is None else max_cache_len
@@ -101,7 +106,7 @@ class StaticCache(transformers.StaticCache):
         cache_position = cache_kwargs.get("cache_position")
         k_out = self.key_cache[layer_idx]
         v_out = self.value_cache[layer_idx]
-        #print(cache_position)
+        # print(cache_position)
         k_out[:, :, cache_position] = key_states
         v_out[:, :, cache_position] = value_states
         self.past_tokens[layer_idx] += cache_position.size(0)
@@ -113,7 +118,7 @@ class StaticCache(transformers.StaticCache):
         # limit the check to the first batch member and head dimension.
         # TODO: deprecate this function in favor of `cache_position`
         return self.past_tokens[layer_idx]
-    
+
     def change_seq_length(self, bias: Optional[int] = 0) -> int:
         """Returns the sequence length of the cached states that were seen by the model."""
         # Occupied cache == any slot in the 3rd dim (sequence length) holds a non-zero value. To save on compute, let's

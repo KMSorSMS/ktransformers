@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
 """
-Description  :  
+Description  :
 Author       : Azure-Tang
 Date         : 2024-07-25 11:25:24
 Version      : 1.0.0
-LastEditors  : Azure 
+LastEditors  : Azure
 LastEditTime : 2024-08-27 07:29:04
-Copyright (c) 2024 by KVCache.AI, All Rights Reserved. 
+Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 """
 
 import inspect
@@ -69,9 +69,7 @@ if is_flash_attn_2_available():
     from flash_attn import flash_attn_func, flash_attn_varlen_func
     from flash_attn.bert_padding import index_first_axis, pad_input, unpad_input  # noqa
 
-    _flash_supports_window_size = "window_size" in list(
-        inspect.signature(flash_attn_func).parameters
-    )
+    _flash_supports_window_size = "window_size" in list(inspect.signature(flash_attn_func).parameters)
 
 logger = logging.get_logger(__name__)
 
@@ -194,9 +192,7 @@ class KQwen2MoeModel(BaseInjectedModule):
         transfer_map: dict = None,
         **kwargs,
     ):
-        BaseInjectedModule.__init__(
-            self, key, gguf_loader, config, orig_module, device, **kwargs
-        )
+        BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, device, **kwargs)
         self.per_layer_prefill_intput_threshold = per_layer_prefill_intput_threshold
         self.transfer_map = transfer_map
         self.stream_device_map = dict()
@@ -215,47 +211,30 @@ class KQwen2MoeModel(BaseInjectedModule):
         output_router_logits: Optional[bool] = None,
         return_dict: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
-        per_layer_prefill_intput_threshold: (
-            int | None
-        ) = None,  # if None or 0, close per-layer prefill
+        per_layer_prefill_intput_threshold: int | None = None,  # if None or 0, close per-layer prefill
     ) -> Union[Tuple, MoeModelOutputWithPast]:
         # print(f'Total length of input_ids: {input_ids.size(1)}, {input_ids.size()}')
 
         if per_layer_prefill_intput_threshold is None:
             per_layer_prefill_intput_threshold = self.per_layer_prefill_intput_threshold
         per_layer_prefill_flag = False
-        seq_lenth = (
-            inputs_embeds.size(1) if inputs_embeds is not None else input_ids.size(1)
-        )
-        if (
-            per_layer_prefill_intput_threshold
-            and per_layer_prefill_intput_threshold < seq_lenth
-        ):
+        seq_lenth = inputs_embeds.size(1) if inputs_embeds is not None else input_ids.size(1)
+        if per_layer_prefill_intput_threshold and per_layer_prefill_intput_threshold < seq_lenth:
             per_layer_prefill_flag = True
             for layer in self.layers:
                 self.load_layer_to(layer, InferenceState.UNLOAD)
         else:
             pass
-        output_attentions = (
-            output_attentions
-            if output_attentions is not None
-            else self.config.output_attentions
-        )
+        output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_router_logits = (
-            output_router_logits
-            if output_router_logits is not None
-            else self.config.output_router_logits
+            output_router_logits if output_router_logits is not None else self.config.output_router_logits
         )
         output_hidden_states = (
-            output_hidden_states
-            if output_hidden_states is not None
-            else self.config.output_hidden_states
+            output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         )
         use_cache = use_cache if use_cache is not None else self.config.use_cache
 
-        return_dict = (
-            return_dict if return_dict is not None else self.config.use_return_dict
-        )
+        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         if (input_ids is None) ^ (inputs_embeds is not None):
             raise ValueError(
@@ -274,8 +253,9 @@ class KQwen2MoeModel(BaseInjectedModule):
             use_legacy_cache = True
             past_key_values = DynamicCache.from_legacy_cache(past_key_values)
             logger.warning_once(
-                "We detected that you are passing `past_key_values` as a tuple and this is deprecated and will be removed in v4.43. "
-                "Please use an appropriate `Cache` class (https://huggingface.co/docs/transformers/v4.41.3/en/internal/generation_utils#transformers.Cache)"
+                "We detected that you are passing `past_key_values` as a tuple and this is deprecated and will be"
+                " removed in v4.43. Please use an appropriate `Cache` class"
+                " (https://huggingface.co/docs/transformers/v4.41.3/en/internal/generation_utils#transformers.Cache)"
             )
 
         if inputs_embeds is None:
@@ -284,9 +264,7 @@ class KQwen2MoeModel(BaseInjectedModule):
             inputs_embeds = inputs_embeds.to("cuda")
 
         if cache_position is None:
-            past_seen_tokens = (
-                past_key_values.get_seq_length() if past_key_values is not None else 0
-            )
+            past_seen_tokens = past_key_values.get_seq_length() if past_key_values is not None else 0
             cache_position = torch.arange(
                 past_seen_tokens,
                 past_seen_tokens + inputs_embeds.shape[1],
@@ -320,23 +298,15 @@ class KQwen2MoeModel(BaseInjectedModule):
                 torch.cuda.set_device(cur_device)
                 self.stream_device_map[cur_device].wait_stream(prev_stream)
                 torch.cuda.set_stream(self.stream_device_map[cur_device])
-                hidden_states = hidden_states.to(
-                    self.transfer_map[i], non_blocking=True
-                )
+                hidden_states = hidden_states.to(self.transfer_map[i], non_blocking=True)
                 causal_mask = (
-                    causal_mask.to(self.transfer_map[i], non_blocking=True)
-                    if causal_mask is not None
-                    else None
+                    causal_mask.to(self.transfer_map[i], non_blocking=True) if causal_mask is not None else None
                 )
                 position_ids = (
-                    position_ids.to(self.transfer_map[i], non_blocking=True)
-                    if position_ids is not None
-                    else None
+                    position_ids.to(self.transfer_map[i], non_blocking=True) if position_ids is not None else None
                 )
                 cache_position = (
-                    cache_position.to(self.transfer_map[i], non_blocking=True)
-                    if cache_position is not None
-                    else None
+                    cache_position.to(self.transfer_map[i], non_blocking=True) if cache_position is not None else None
                 )
 
             if output_hidden_states:
@@ -395,11 +365,7 @@ class KQwen2MoeModel(BaseInjectedModule):
 
         next_cache = None
         if use_cache:
-            next_cache = (
-                next_decoder_cache.to_legacy_cache()
-                if use_legacy_cache
-                else next_decoder_cache
-            )
+            next_cache = next_decoder_cache.to_legacy_cache() if use_legacy_cache else next_decoder_cache
 
         if not return_dict:
             return tuple(
@@ -422,9 +388,7 @@ class KQwen2MoeModel(BaseInjectedModule):
         )
 
     def load_layer_to(self, layer: Qwen2MoeDecoderLayer, target: InferenceState):
-        assert isinstance(
-            layer, Qwen2MoeDecoderLayer
-        ), "module should be nn.ModuleList of decoder layers"
+        assert isinstance(layer, Qwen2MoeDecoderLayer), "module should be nn.ModuleList of decoder layers"
 
         # TODO Support restore to original device, not only cuda
         device = "cpu" if target == InferenceState.UNLOAD else "cuda"
@@ -544,9 +508,7 @@ class KDeepseekV2Model(BaseInjectedModule):
         transfer_map: dict = None,
         **kwargs,
     ):
-        BaseInjectedModule.__init__(
-            self, key, gguf_loader, config, orig_module, device, **kwargs
-        )
+        BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, device, **kwargs)
         self.per_layer_prefill_intput_threshold = per_layer_prefill_intput_threshold
         self.transfer_map = transfer_map
         self.stream_device_map = dict()
@@ -564,47 +526,30 @@ class KDeepseekV2Model(BaseInjectedModule):
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
-        per_layer_prefill_intput_threshold: (
-            int | None
-        ) = None,  # if None, no per-layer prefill
+        per_layer_prefill_intput_threshold: int | None = None,  # if None, no per-layer prefill
     ) -> Union[Tuple, BaseModelOutputWithPast]:
         if per_layer_prefill_intput_threshold is None:
             per_layer_prefill_intput_threshold = self.per_layer_prefill_intput_threshold
         per_layer_prefill_flag = False
-        seq_lenth = (
-            inputs_embeds.size(1) if inputs_embeds is not None else input_ids.size(1)
-        )
-        if (
-            per_layer_prefill_intput_threshold
-            and per_layer_prefill_intput_threshold < seq_lenth
-        ):
+        seq_lenth = inputs_embeds.size(1) if inputs_embeds is not None else input_ids.size(1)
+        if per_layer_prefill_intput_threshold and per_layer_prefill_intput_threshold < seq_lenth:
             per_layer_prefill_flag = True
             for layer in self.layers:
                 self.load_layer_to(layer, InferenceState.UNLOAD)
             torch.cuda.empty_cache()
         else:
             pass
-        output_attentions = (
-            output_attentions
-            if output_attentions is not None
-            else self.config.output_attentions
-        )
+        output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
-            output_hidden_states
-            if output_hidden_states is not None
-            else self.config.output_hidden_states
+            output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         )
         use_cache = use_cache if use_cache is not None else self.config.use_cache
 
-        return_dict = (
-            return_dict if return_dict is not None else self.config.use_return_dict
-        )
+        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         # retrieve input_ids and inputs_embeds
         if input_ids is not None and inputs_embeds is not None:
-            raise ValueError(
-                "You cannot specify both input_ids and inputs_embeds at the same time"
-            )
+            raise ValueError("You cannot specify both input_ids and inputs_embeds at the same time")
         elif input_ids is not None:
             batch_size, seq_length = input_ids.shape[:2]
         elif inputs_embeds is not None:
@@ -615,7 +560,8 @@ class KDeepseekV2Model(BaseInjectedModule):
         if self.gradient_checkpointing and self.training:
             if use_cache:
                 logger.warning_once(
-                    "`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`transformers."
+                    "`use_cache=True` is incompatible with gradient checkpointing. Setting"
+                    " `use_cache=False`transformers."
                 )
                 use_cache = False
 
@@ -627,9 +573,7 @@ class KDeepseekV2Model(BaseInjectedModule):
             past_key_values_length = past_key_values.get_usable_length(seq_length)
 
         if cache_position is None:
-            past_seen_tokens = (
-                past_key_values.get_seq_length() if past_key_values is not None else 0
-            )
+            past_seen_tokens = past_key_values.get_seq_length() if past_key_values is not None else 0
             cache_position = torch.arange(
                 past_seen_tokens,
                 past_seen_tokens + inputs_embeds.shape[1],
@@ -676,23 +620,15 @@ class KDeepseekV2Model(BaseInjectedModule):
                     torch.cuda.set_device(cur_device)
                     self.stream_device_map[cur_device].wait_stream(prev_stream)
                     torch.cuda.set_stream(self.stream_device_map[cur_device])
-                hidden_states = hidden_states.to(
-                    self.transfer_map[i], non_blocking=True
-                )
+                hidden_states = hidden_states.to(self.transfer_map[i], non_blocking=True)
                 causal_mask = (
-                    causal_mask.to(self.transfer_map[i], non_blocking=True)
-                    if causal_mask is not None
-                    else None
+                    causal_mask.to(self.transfer_map[i], non_blocking=True) if causal_mask is not None else None
                 )
                 position_ids = (
-                    position_ids.to(self.transfer_map[i], non_blocking=True)
-                    if position_ids is not None
-                    else None
+                    position_ids.to(self.transfer_map[i], non_blocking=True) if position_ids is not None else None
                 )
                 cache_position = (
-                    cache_position.to(self.transfer_map[i], non_blocking=True)
-                    if cache_position is not None
-                    else None
+                    cache_position.to(self.transfer_map[i], non_blocking=True) if cache_position is not None else None
                 )
 
             if output_hidden_states:
@@ -755,7 +691,8 @@ class KDeepseekV2Model(BaseInjectedModule):
             t7 = time.time()
 
             print(
-                f"total time: {t7-t3}, \n layer num{len(self.layers)}, gpu time: {t_gpu}, cpu time: {t_cpu}, forward time: {t_f}, restore time: {t7-t6}"
+                f"total time: {t7-t3}, \n layer num{len(self.layers)}, gpu time: {t_gpu}, cpu time: {t_cpu}, forward"
+                f" time: {t_f}, restore time: {t7-t6}"
             )
 
         # add hidden states from the last decoder layer
@@ -764,17 +701,9 @@ class KDeepseekV2Model(BaseInjectedModule):
 
         next_cache = None
         if use_cache:
-            next_cache = (
-                next_decoder_cache.to_legacy_cache()
-                if use_legacy_cache
-                else next_decoder_cache
-            )
+            next_cache = next_decoder_cache.to_legacy_cache() if use_legacy_cache else next_decoder_cache
         if not return_dict:
-            return tuple(
-                v
-                for v in [hidden_states, next_cache, all_hidden_states, all_self_attns]
-                if v is not None
-            )
+            return tuple(v for v in [hidden_states, next_cache, all_hidden_states, all_self_attns] if v is not None)
         return BaseModelOutputWithPast(
             last_hidden_state=hidden_states,
             past_key_values=next_cache,
@@ -783,9 +712,7 @@ class KDeepseekV2Model(BaseInjectedModule):
         )
 
     def load_layer_to(self, layer: DeepseekV2DecoderLayer, target: InferenceState):
-        assert isinstance(
-            layer, DeepseekV2DecoderLayer
-        ), "module should be nn.ModuleList of decoder layers"
+        assert isinstance(layer, DeepseekV2DecoderLayer), "module should be nn.ModuleList of decoder layers"
 
         # TODO Support restore to original device, not only cuda
         device = "cpu" if target == InferenceState.UNLOAD else "cuda"
@@ -954,16 +881,14 @@ class KLlamaModel(BaseInjectedModule):
         **kwargs,
     ):
 
-        BaseInjectedModule.__init__(
-            self, key, gguf_loader, config, orig_module, device, **kwargs
-        )
+        BaseInjectedModule.__init__(self, key, gguf_loader, config, orig_module, device, **kwargs)
         self.per_layer_prefill_intput_threshold = per_layer_prefill_intput_threshold
         self.transfer_map = transfer_map
         self.stream_device_map = dict()
-        user_path: str = os.path.expanduser('~')
-        localstore_path: str = os.path.join(user_path,'.ktransformers')
-        config_path: str = os.path.join(localstore_path,Config.CONFIG_FILE_NAME)
-        with open(config_path,"r") as file:
+        user_path: str = os.path.expanduser("~")
+        localstore_path: str = os.path.join(user_path, ".ktransformers")
+        config_path: str = os.path.join(localstore_path, Config.CONFIG_FILE_NAME)
+        with open(config_path, "r") as file:
             config_yaml = yaml.safe_load(file.read())
             self.long_context_config = config_yaml.get("long_context")
             self.ext_config = config_yaml.get("ext")
@@ -1009,20 +934,12 @@ class KLlamaModel(BaseInjectedModule):
         return_dict: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
     ) -> Union[Tuple, BaseModelOutputWithPast]:
-        output_attentions = (
-            output_attentions
-            if output_attentions is not None
-            else self.config.output_attentions
-        )
+        output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
-            output_hidden_states
-            if output_hidden_states is not None
-            else self.config.output_hidden_states
+            output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         )
         use_cache = use_cache if use_cache is not None else self.config.use_cache
-        return_dict = (
-            return_dict if return_dict is not None else self.config.use_return_dict
-        )
+        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         if (input_ids is None) ^ (inputs_embeds is not None):
             raise ValueError(
@@ -1042,14 +959,13 @@ class KLlamaModel(BaseInjectedModule):
             return_legacy_cache = True
             past_key_values = DynamicCache.from_legacy_cache(past_key_values)
             logger.warning_once(
-                "We detected that you are passing `past_key_values` as a tuple and this is deprecated and will be removed in v4.43. "
-                "Please use an appropriate `Cache` class (https://huggingface.co/docs/transformers/v4.41.3/en/internal/generation_utils#transformers.Cache)"
+                "We detected that you are passing `past_key_values` as a tuple and this is deprecated and will be"
+                " removed in v4.43. Please use an appropriate `Cache` class"
+                " (https://huggingface.co/docs/transformers/v4.41.3/en/internal/generation_utils#transformers.Cache)"
             )
 
         if cache_position is None:
-            past_seen_tokens = (
-                past_key_values.get_seq_length() if past_key_values is not None else 0
-            )
+            past_seen_tokens = past_key_values.get_seq_length() if past_key_values is not None else 0
             cache_position = torch.arange(
                 past_seen_tokens,
                 past_seen_tokens + inputs_embeds.shape[1],
@@ -1081,7 +997,7 @@ class KLlamaModel(BaseInjectedModule):
                 return_dict,
             )
         elif q_len <= chunck_size:
-            inputs_embeds = inputs_embeds.to('cuda')
+            inputs_embeds = inputs_embeds.to("cuda")
             output = self.forward_chunk(
                 inputs_embeds,
                 causal_mask,
@@ -1097,16 +1013,14 @@ class KLlamaModel(BaseInjectedModule):
             KLlamaModel.dynamic_sdpa.clear_importance(cache_position[-1] + 1)
             return output
         cur_idx = 0
-        assert (
-            output_attentions == False
-        ), "output_attentions is not supported when using chunked attention"
+        assert output_attentions == False, "output_attentions is not supported when using chunked attention"
         attn_output = None
         # prefill
         KLlamaModel.dynamic_sdpa.remaining_length = q_len
         while cur_idx < q_len:
-            print(f'current prefill length: {cur_idx}')
+            print(f"current prefill length: {cur_idx}")
             chunk_mask = None
-            if inputs_embeds.device.type == 'cpu':
+            if inputs_embeds.device.type == "cpu":
                 tmp_inputs_embeds = inputs_embeds[:, cur_idx : min(cur_idx + chunck_size, q_len)].to("cuda")
             else:
                 tmp_inputs_embeds = inputs_embeds[:, cur_idx : min(cur_idx + chunck_size, q_len)]
@@ -1120,9 +1034,7 @@ class KLlamaModel(BaseInjectedModule):
                 cache_position[cur_idx : min(cur_idx + chunck_size, q_len)],
             )
             cur_output = output_with_past.last_hidden_state
-            KLlamaModel.dynamic_sdpa.remaining_length -= (
-                min(cur_idx + chunck_size, q_len) - cur_idx
-            )
+            KLlamaModel.dynamic_sdpa.remaining_length -= min(cur_idx + chunck_size, q_len) - cur_idx
             cur_idx += chunck_size
             # if attn_output is None:
             attn_output = cur_output
@@ -1147,19 +1059,13 @@ class KLlamaModel(BaseInjectedModule):
     ):
 
         output_hidden_states = (
-            output_hidden_states
-            if output_hidden_states is not None
-            else self.config.output_hidden_states
+            output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
         )
         return_legacy_cache = False
-        if use_cache and not isinstance(
-            past_key_values, Cache
-        ):  # kept for BC (non `Cache` `past_key_values` inputs)
+        if use_cache and not isinstance(past_key_values, Cache):  # kept for BC (non `Cache` `past_key_values` inputs)
             return_legacy_cache = True
             past_key_values = DynamicCache.from_legacy_cache(past_key_values)
-        return_dict = (
-            return_dict if return_dict is not None else self.config.use_return_dict
-        )
+        return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
         hidden_states = inputs_embeds
 
@@ -1222,11 +1128,7 @@ class KLlamaModel(BaseInjectedModule):
             next_cache = next_cache.to_legacy_cache()
 
         if not return_dict:
-            return tuple(
-                v
-                for v in [hidden_states, next_cache, all_hidden_states, all_self_attns]
-                if v is not None
-            )
+            return tuple(v for v in [hidden_states, next_cache, all_hidden_states, all_self_attns] if v is not None)
         return BaseModelOutputWithPast(
             last_hidden_state=hidden_states,
             past_key_values=next_cache,
@@ -1255,17 +1157,11 @@ class KLlamaModel(BaseInjectedModule):
         # For SDPA, when possible, we will rely on its `is_causal` argument instead of its `attn_mask` argument, in
         # order to dispatch on Flash Attention 2. This feature is not compatible with static cache, as SDPA will fail
         # to infer the attention mask.
-        past_seen_tokens = (
-            past_key_values.get_seq_length() if past_key_values is not None else 0
-        )
+        past_seen_tokens = past_key_values.get_seq_length() if past_key_values is not None else 0
         using_static_cache = isinstance(past_key_values, StaticCache)
 
         # When output attentions is True, sdpa implementation's forward method calls the eager implementation's forward
-        if (
-            self.config._attn_implementation == "sdpa"
-            and not using_static_cache
-            and not output_attentions
-        ):
+        if self.config._attn_implementation == "sdpa" and not using_static_cache and not output_attentions:
             if AttentionMaskConverter._ignore_causal_mask_sdpa(
                 attention_mask,
                 inputs_embeds=input_tensor,
@@ -1289,9 +1185,7 @@ class KLlamaModel(BaseInjectedModule):
         if attention_mask is not None and attention_mask.dim() == 4:
             # in this case we assume that the mask comes already in inverted form and requires no inversion or slicing
             if attention_mask.max() != 0:
-                raise ValueError(
-                    "Custom 4D attention mask should be passed in inverted form with max==0`"
-                )
+                raise ValueError("Custom 4D attention mask should be passed in inverted form with max==0`")
             causal_mask = attention_mask
         else:
             causal_mask = torch.full(
@@ -1302,25 +1196,16 @@ class KLlamaModel(BaseInjectedModule):
             )
             if sequence_length != 1:
                 causal_mask = torch.triu(causal_mask, diagonal=1)
-            causal_mask *= torch.arange(
-                target_length, device=device
-            ) > cache_position.reshape(-1, 1)
-            causal_mask = causal_mask[None, None, :, :].expand(
-                input_tensor.shape[0], 1, -1, -1
-            )
+            causal_mask *= torch.arange(target_length, device=device) > cache_position.reshape(-1, 1)
+            causal_mask = causal_mask[None, None, :, :].expand(input_tensor.shape[0], 1, -1, -1)
             if attention_mask is not None:
-                causal_mask = (
-                    causal_mask.clone()
-                )  # copy to contiguous memory for in-place edit
+                causal_mask = causal_mask.clone()  # copy to contiguous memory for in-place edit
                 mask_length = attention_mask.shape[-1]
-                padding_mask = (
-                    causal_mask[:, :, :, :mask_length]
-                    + attention_mask[:, None, None, :]
-                )
+                padding_mask = causal_mask[:, :, :, :mask_length] + attention_mask[:, None, None, :]
                 padding_mask = padding_mask == 0
-                causal_mask[:, :, :, :mask_length] = causal_mask[
-                    :, :, :, :mask_length
-                ].masked_fill(padding_mask, min_dtype)
+                causal_mask[:, :, :, :mask_length] = causal_mask[:, :, :, :mask_length].masked_fill(
+                    padding_mask, min_dtype
+                )
         if (
             self.config._attn_implementation == "sdpa"
             and attention_mask is not None
@@ -1330,8 +1215,6 @@ class KLlamaModel(BaseInjectedModule):
             # Attend to all tokens in fully masked rows in the causal_mask, for example the relevant first rows when
             # using left padding. This is required by F.scaled_dot_product_attention memory-efficient attention path.
             # Details: https://github.com/pytorch/pytorch/issues/110213
-            causal_mask = AttentionMaskConverter._unmask_unattended(
-                causal_mask, min_dtype
-            )
+            causal_mask = AttentionMaskConverter._unmask_unattended(causal_mask, min_dtype)
 
         return causal_mask

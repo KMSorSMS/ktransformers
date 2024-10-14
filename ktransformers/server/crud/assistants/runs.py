@@ -2,7 +2,7 @@ from time import time
 from uuid import uuid4
 
 from ktransformers.server.models.assistants.runs import Run
-from ktransformers.server.schemas.assistants.runs import RunCreate,RunObject
+from ktransformers.server.schemas.assistants.runs import RunCreate, RunObject
 from ktransformers.server.schemas.base import ObjectID
 from ktransformers.server.utils.sql_utils import SQLUtil
 
@@ -13,9 +13,9 @@ class RunsDatabaseManager:
 
     def create_run_object(self, thread_id: ObjectID, run: RunCreate) -> RunObject:
         run_obj = RunObject(
-            **run.model_dump(mode='json', exclude={"stream"}),
+            **run.model_dump(mode="json", exclude={"stream"}),
             id=str(uuid4()),
-            object='run',
+            object="run",
             created_at=int(time()),
             thread_id=thread_id,
             status=RunObject.Status.queued,
@@ -39,7 +39,7 @@ class RunsDatabaseManager:
 
     def db_sync_run(self, run: RunObject) -> None:
         db_run = Run(
-            **run.model_dump(mode='json'),
+            **run.model_dump(mode="json"),
         )
         with self.sql_util.get_db() as db:
             self.sql_util.db_merge_commit(db, db_run)

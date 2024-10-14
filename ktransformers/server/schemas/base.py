@@ -21,7 +21,6 @@ class ObjectWithCreatedTime(Object):
     created_at: int
 
 
-
 class Order(str, Enum):
     ASC = "asc"
     DESC = "desc"
@@ -35,11 +34,12 @@ class Order(str, Enum):
 
 
 Metadata = Dict[str, str]
-MetadataField: Metadata = Field({},max_length=16, alias="metadata")
+MetadataField: Metadata = Field({}, max_length=16, alias="metadata")
 
 
 class DeleteResponse(Object):
     deleted: bool = True
+
 
 class OperationResponse(BaseModel):
     operation: str

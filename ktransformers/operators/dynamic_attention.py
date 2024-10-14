@@ -1,19 +1,20 @@
 #!/usr/bin/env python
 # coding=utf-8
 """
-Description  :  
+Description  :
 Author       : Jianwei Dong
 Date         : 2024-08-26 23:25:24
 Version      : 1.0.0
 LastEditors  : Jianwei Dong
 LastEditTime : 2024-08-26 23:25:24
-Copyright (c) 2024 by KVCache.AI, All Rights Reserved. 
+Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 """
 
 import torch
 from transformers import AutoConfig
 import sys, os
 import logging
+
 logger = logging.getLogger("dynamic_attention")
 sys.path.append(os.path.dirname(__file__) + "/../ktransformers_ext/cpu_backend")
 from ktransformers.operators.cpuinfer import CPUInfer, CPUInferKVCache
@@ -133,19 +134,17 @@ class DynamicScaledDotProductAttention:
             pin_memory=True,
         )
 
-        self.cache_seqlens_cpu = torch.empty(
-            (1,), device="cpu", dtype=torch.int32, pin_memory=True
-        )
+        self.cache_seqlens_cpu = torch.empty((1,), device="cpu", dtype=torch.int32, pin_memory=True)
 
         self.cache_seqlens_cuda = torch.empty((1,), device=device, dtype=torch.int32)
 
-        self.prefix_block_table = torch.arange(
-            self.block_num, device="cpu", dtype=torch.int32, pin_memory=True
-        ).view(1, -1)
+        self.prefix_block_table = torch.arange(self.block_num, device="cpu", dtype=torch.int32, pin_memory=True).view(
+            1, -1
+        )
 
-        self.block_table_cpu = torch.arange(
-            self.block_num, device="cpu", dtype=torch.int32, pin_memory=True
-        ).view(1, -1)
+        self.block_table_cpu = torch.arange(self.block_num, device="cpu", dtype=torch.int32, pin_memory=True).view(
+            1, -1
+        )
 
         # assert (
         #     self.local_windows_len // self.block_size + 1 + self.preselect_block_count
@@ -158,17 +157,11 @@ class DynamicScaledDotProductAttention:
             dtype=torch.float16,
             pin_memory=True,
         )
-        self.lse_cpu = torch.empty(
-            (1, 1, self.q_head_num), device="cpu", dtype=torch.float32, pin_memory=True
-        )
+        self.lse_cpu = torch.empty((1, 1, self.q_head_num), device="cpu", dtype=torch.float32, pin_memory=True)
 
-        self.output_cuda = torch.empty(
-            (1, 1, self.q_head_num, self.head_dim), device=device, dtype=torch.float16
-        )
+        self.output_cuda = torch.empty((1, 1, self.q_head_num, self.head_dim), device=device, dtype=torch.float16)
 
-        self.attn_sparsity = torch.zeros(
-            (1, 1, self.q_head_num), device="cpu", dtype=torch.float32, pin_memory=True
-        )
+        self.attn_sparsity = torch.zeros((1, 1, self.q_head_num), device="cpu", dtype=torch.float32, pin_memory=True)
 
         if preselect_block == True:
             self.preselect_block_table = torch.zeros(
@@ -200,7 +193,10 @@ class DynamicScaledDotProductAttention:
         )
 
         print(
-            f"local_windows_len: {local_windows_len}, topk: {topk}, dense_layer_num: {dense_layer_num}, kv_type: {self.kv_type}, anchor_type: {self.anchor_type}, preselect_block: {self.preselect_block}, preselect_block_count: {self.preselect_block_count}, token_step: {self.token_step}, layer_step: {self.layer_step}"
+            f"local_windows_len: {local_windows_len}, topk: {topk}, dense_layer_num: {dense_layer_num}, kv_type:"
+            f" {self.kv_type}, anchor_type: {self.anchor_type}, preselect_block: {self.preselect_block},"
+            f" preselect_block_count: {self.preselect_block_count}, token_step: {self.token_step}, layer_step:"
+            f" {self.layer_step}"
         )
 
         self.shape_mask = (
@@ -209,9 +205,7 @@ class DynamicScaledDotProductAttention:
             self.block_size,
         )
 
-        mask = torch.zeros(
-            self.shape_mask, dtype=torch.uint8, device=device
-        ).contiguous()
+        mask = torch.zeros(self.shape_mask, dtype=torch.uint8, device=device).contiguous()
         elm_idx = torch.arange(self.block_size, device=device)
 
         for i in range(mask.size(-2)):
@@ -238,12 +232,10 @@ class DynamicScaledDotProductAttention:
         n_rep = self.q_head_num // self.kv_head_num
         importance = self.cache_importance.view(-1, self.q_head_num)
         importance = importance.narrow(0, batch_idx * max_block_num + offset, width)
-        n_gqa_ = self.q_head_num // self.kv_head_num 
+        n_gqa_ = self.q_head_num // self.kv_head_num
         for head_idx in range(self.q_head_num):
             key_item = key[..., head_idx // n_gqa_, :].view(key.size(0), -1)
-            qk = torch.einsum(
-                "qd,kd->qk", query[:,head_idx,:], key_item
-            )  # (num_attention_heads, len_q, len_k)
+            qk = torch.einsum("qd,kd->qk", query[:, head_idx, :], key_item)  # (num_attention_heads, len_q, len_k)
 
             if mask_mode == "tril":
                 mask = self.tril_mask
@@ -255,12 +247,12 @@ class DynamicScaledDotProductAttention:
                 qk = qk * mask
 
             if use_softmax:
-                qk = torch.nn.functional.softmax(
-                    qk / math.sqrt(self.head_dim), dim=-1, dtype=torch.float32
-                ).to(torch.float16)
-              
+                qk = torch.nn.functional.softmax(qk / math.sqrt(self.head_dim), dim=-1, dtype=torch.float32).to(
+                    torch.float16
+                )
+
             qk = torch.sum(qk, dim=-2)
-            importance[...,head_idx] += qk
+            importance[..., head_idx] += qk
 
     def get_preselect_block_table_and_attn_score(
         self,
@@ -288,18 +280,11 @@ class DynamicScaledDotProductAttention:
             )
 
         if self.preselect_block:
-            self.prefill_block_num = max(
-                0, max_block_num - self.local_windows_len // self.block_size
-            )
-            self.evict_tokens = (
-                max(self.prefill_block_num - self.preselect_block_count, 0)
-                * self.block_size
-            )
+            self.prefill_block_num = max(0, max_block_num - self.local_windows_len // self.block_size)
+            self.evict_tokens = max(self.prefill_block_num - self.preselect_block_count, 0) * self.block_size
 
             if self.prefill_block_num != 0:
-                importance_cache = self.cache_importance.narrow(
-                    0, 0, self.prefill_block_num * batch_size
-                ).view(
+                importance_cache = self.cache_importance.narrow(0, 0, self.prefill_block_num * batch_size).view(
                     batch_size, self.prefill_block_num, self.block_size, self.q_head_num
                 )
 
@@ -309,9 +294,7 @@ class DynamicScaledDotProductAttention:
                 importance_l = importance_cache[:, :-1, -self.block_size // 4 :]
                 pad_l = torch.zeros_like(importance_l[:, :1])
                 importance_l = torch.cat((pad_l, importance_l), dim=1)
-                importance = torch.cat(
-                    (importance_l, importance_cache, importance_r), dim=2
-                )
+                importance = torch.cat((importance_l, importance_cache, importance_r), dim=2)
                 importance = importance.mean(dim=-1)
                 importance = importance.mean(dim=-1)
                 # importance: (batch_size, max_block_num)
@@ -334,12 +317,10 @@ class DynamicScaledDotProductAttention:
                             if x not in self.preselect_block_table[tmp_layer_idx]:
                                 self.preselect_block_table[tmp_layer_idx, topk - i] = x
         if self.anchor_type == "DYNAMIC":
-            importance_cache = self.cache_importance.narrow(
-                0, 0, max_block_num * batch_size
-            ).view(batch_size, max_block_num * self.block_size, self.q_head_num)
-            importance_cache_cpu = torch.empty_like(
-                importance_cache, device="cpu", pin_memory=True
+            importance_cache = self.cache_importance.narrow(0, 0, max_block_num * batch_size).view(
+                batch_size, max_block_num * self.block_size, self.q_head_num
             )
+            importance_cache_cpu = torch.empty_like(importance_cache, device="cpu", pin_memory=True)
 
             importance_cache_cpu.copy_(importance_cache)
 
@@ -358,9 +339,9 @@ class DynamicScaledDotProductAttention:
             )
             self.cpu_infer.sync()
 
-        importance_cache = self.cache_importance.narrow(
-            0, 0, max_block_num * batch_size
-        ).view(batch_size, max_block_num * self.block_size, self.q_head_num)
+        importance_cache = self.cache_importance.narrow(0, 0, max_block_num * batch_size).view(
+            batch_size, max_block_num * self.block_size, self.q_head_num
+        )
         importance_cache.zero_()
 
     # key: [bsz, past_len, head_num, head_dim] float16
@@ -387,10 +368,7 @@ class DynamicScaledDotProductAttention:
                     query_cur,
                     key[
                         batch_idx,
-                        offset[batch_idx]
-                        + offset_cur : offset[batch_idx]
-                        + offset_cur
-                        + self.block_size,
+                        offset[batch_idx] + offset_cur : offset[batch_idx] + offset_cur + self.block_size,
                     ],
                     offset[batch_idx].item() + offset_cur,
                     self.block_size,
@@ -398,11 +376,7 @@ class DynamicScaledDotProductAttention:
                     use_softmax=False,
                 )
 
-                offset_key = (
-                    offset[batch_idx].item()
-                    + idx * self.block_size
-                    - self.local_windows_len
-                )
+                offset_key = offset[batch_idx].item() + idx * self.block_size - self.local_windows_len
                 if offset_key >= 0:
                     self.get_attn_score_one_block(
                         batch_idx,
@@ -416,9 +390,7 @@ class DynamicScaledDotProductAttention:
                     )
 
                 offset_key = max(0, offset_key + self.block_size)
-                width_key = (
-                    offset[batch_idx].item() + idx * self.block_size - offset_key
-                )
+                width_key = offset[batch_idx].item() + idx * self.block_size - offset_key
                 if width_key > 0:
                     self.get_attn_score_one_block(
                         batch_idx,
@@ -431,12 +403,10 @@ class DynamicScaledDotProductAttention:
                         use_softmax=False,
                     )
 
-        importance_cache = self.cache_importance.narrow(
-            0, 0, max_block_num * batch_size
-        ).view(batch_size, max_block_num * self.block_size, self.q_head_num)
-        importance_cache_cpu = torch.empty_like(
-            importance_cache, device="cpu", pin_memory=True
+        importance_cache = self.cache_importance.narrow(0, 0, max_block_num * batch_size).view(
+            batch_size, max_block_num * self.block_size, self.q_head_num
         )
+        importance_cache_cpu = torch.empty_like(importance_cache, device="cpu", pin_memory=True)
 
         importance_cache_cpu.copy_(importance_cache)
 
@@ -472,9 +442,7 @@ class DynamicScaledDotProductAttention:
         for batch_idx in range(batch_size):
             offset = past_len[batch_idx]
             width = q_len
-            k_cache[batch_idx][offset : offset + width].copy_(
-                key[batch_idx].view(-1, self.kv_head_num, self.head_dim)
-            )
+            k_cache[batch_idx][offset : offset + width].copy_(key[batch_idx].view(-1, self.kv_head_num, self.head_dim))
             v_cache[batch_idx][offset : offset + width].copy_(
                 value[batch_idx].view(-1, self.kv_head_num, self.head_dim)
             )
@@ -485,9 +453,7 @@ class DynamicScaledDotProductAttention:
         k_cache_cpu.copy_(k_cache)
         v_cache_cpu.copy_(v_cache)
 
-        cur_block_num = (
-            q_len + past_len[0].item() + self.block_size - 1
-        ) // self.block_size
+        cur_block_num = (q_len + past_len[0].item() + self.block_size - 1) // self.block_size
         block_table_cpu = self.prefix_block_table[:, :cur_block_num].to("cpu")
         past_len_cpu = past_len.contiguous().to("cpu")
 
@@ -512,9 +478,7 @@ class DynamicScaledDotProductAttention:
     def calc_anchor(self, cache_seqlens: int):
         cur_block_num = (cache_seqlens + self.block_size - 1) // self.block_size
         block_table_cpu = self.prefix_block_table[:, :cur_block_num].to("cpu")
-        cache_seqlens_cpu = torch.tensor(
-            [cache_seqlens], device="cpu", dtype=torch.int32
-        )
+        cache_seqlens_cpu = torch.tensor([cache_seqlens], device="cpu", dtype=torch.int32)
 
         self.cpu_infer.submit(
             self.local_thread.calc_anchor_all_layers(
@@ -528,9 +492,7 @@ class DynamicScaledDotProductAttention:
         print(f"clear importance: {cache_seqlens}")
         cur_block_num = (cache_seqlens + self.block_size - 1) // self.block_size
         block_table_cpu = self.prefix_block_table[:, :cur_block_num].to("cpu")
-        cache_seqlens_cpu = torch.tensor(
-            [cache_seqlens], device="cpu", dtype=torch.int32
-        )
+        cache_seqlens_cpu = torch.tensor([cache_seqlens], device="cpu", dtype=torch.int32)
 
         self.cpu_infer.submit(
             self.local_thread.clear_importance_all_layers(
@@ -543,9 +505,7 @@ class DynamicScaledDotProductAttention:
     def clear_kvcache(self, cache_seqlens: int):
         cur_block_num = (cache_seqlens + self.block_size - 1) // self.block_size
         block_table_cpu = self.prefix_block_table[:, :cur_block_num].to("cpu")
-        cache_seqlens_cpu = torch.tensor(
-            [cache_seqlens], device="cpu", dtype=torch.int32
-        )
+        cache_seqlens_cpu = torch.tensor([cache_seqlens], device="cpu", dtype=torch.int32)
 
         self.cpu_infer.submit(
             self.local_thread.clear_kvcache_all_layers(
@@ -683,9 +643,7 @@ class DynamicScaledDotProductAttention:
                 )
             else:
                 if self.preselect_block:
-                    self.cache_seqlens_cpu.copy_(
-                        self.cache_seqlens_cuda - self.evict_tokens, non_blocking=True
-                    )
+                    self.cache_seqlens_cpu.copy_(self.cache_seqlens_cuda - self.evict_tokens, non_blocking=True)
                     if self.preselect_block_count < self.prefill_block_num:
                         self.block_table_cpu[:, : self.preselect_block_count].copy_(
                             self.preselect_block_table[layer_idx : layer_idx + 1],
@@ -694,13 +652,11 @@ class DynamicScaledDotProductAttention:
 
                         self.block_table_cpu[
                             :,
-                            self.preselect_block_count : self.preselect_block_count
-                            + self.local_block_num,
+                            self.preselect_block_count : self.preselect_block_count + self.local_block_num,
                         ].copy_(
                             self.prefix_block_table[
                                 :,
-                                self.prefill_block_num : self.prefill_block_num
-                                + self.local_block_num,
+                                self.prefill_block_num : self.prefill_block_num + self.local_block_num,
                             ],
                             non_blocking=True,
                         )
@@ -717,19 +673,13 @@ class DynamicScaledDotProductAttention:
                             generate_token_idx=self.generate_token_idx,
                             block_table=self.block_table_cpu,
                             cache_seqlens=self.cache_seqlens_cpu,
-                            topk=(
-                                self.topk
-                                if self.topk <= self.preselect_block_count
-                                else None
-                            ),
+                            topk=(self.topk if self.topk <= self.preselect_block_count else None),
                             local=self.local_windows_len // self.block_size,
                         ),
                     )
                 #                    print("submit_with_cuda_stream enqueue\n")
                 else:
-                    self.block_table_cpu.copy_(
-                        self.prefix_block_table, non_blocking=True
-                    )
+                    self.block_table_cpu.copy_(self.prefix_block_table, non_blocking=True)
                     self.cpu_infer.submit_with_cuda_stream(
                         torch.cuda.current_stream("cuda").cuda_stream,
                         self.local_thread.attn_with_kvcache(
@@ -746,9 +696,7 @@ class DynamicScaledDotProductAttention:
                             local=self.local_windows_len // self.block_size,
                         ),
                     )
-            self.cpu_infer.sync_with_cuda_stream(
-                torch.cuda.current_stream("cuda").cuda_stream
-            )
+            self.cpu_infer.sync_with_cuda_stream(torch.cuda.current_stream("cuda").cuda_stream)
             #            print("submit_with_cuda_stream finished\n")
             self.output_cuda.copy_(self.output_cpu, non_blocking=True)
             return self.output_cuda.transpose(1, 2)

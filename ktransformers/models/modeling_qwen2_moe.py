@@ -1,14 +1,14 @@
 # coding=utf-8
-'''
-Description  :  
+"""
+Description  :
 Author       : Boxin Zhang
 Version      : 0.1.0
-''' 
+"""
 # Adapted from
 # https://github.com/huggingface/transformers/blob/v4.42.3/src/transformers/models/qwen2_moe/modeling_qwen2_moe.py
 # Copyright 2024 The Qwen team, Alibaba Group and the HuggingFace Inc. team. All rights reserved.
 # Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
-# 
+#
 # This code is based on EleutherAI's GPT-NeoX library and the GPT-NeoX
 # and OPT implementations in this library. It has been modified from its
 # original forms to accommodate minor architectural differences compared
@@ -178,6 +178,7 @@ class Qwen2MoeRMSNorm(nn.Module):
         variance = hidden_states.pow(2).mean(-1, keepdim=True)
         hidden_states = hidden_states * torch.rsqrt(variance + self.variance_epsilon)
         return self.weight * hidden_states.to(input_dtype)
+
 
 # Copied from transformers.models.mistral.modeling_mistral.MistralRotaryEmbedding with Mistral->Qwen2Moe
 class Qwen2MoeRotaryEmbedding(nn.Module):
@@ -453,8 +454,8 @@ class Qwen2MoeFlashAttention2(Qwen2MoeAttention):
 
         if not _flash_supports_window_size:
             logger.warning_once(
-                "The current flash attention version does not support sliding window attention, for a more memory efficient implementation"
-                " make sure to upgrade flash-attn library."
+                "The current flash attention version does not support sliding window attention, for a more memory"
+                " efficient implementation make sure to upgrade flash-attn library."
             )
 
         if past_key_value is not None:
@@ -475,8 +476,8 @@ class Qwen2MoeFlashAttention2(Qwen2MoeAttention):
 
                 if past_key.shape[-2] != self.config.sliding_window - 1:
                     raise ValueError(
-                        f"past key must have a shape of (`batch_size, num_heads, self.config.sliding_window-1, head_dim`), got"
-                        f" {past_key.shape}"
+                        "past key must have a shape of (`batch_size, num_heads, self.config.sliding_window-1,"
+                        f" head_dim`), got {past_key.shape}"
                     )
 
                 if attention_mask is not None:
@@ -510,8 +511,8 @@ class Qwen2MoeFlashAttention2(Qwen2MoeAttention):
                 target_dtype = self.q_proj.weight.dtype
 
             logger.warning_once(
-                f"The input hidden states seems to be silently casted in float32, this might be related to"
-                f" the fact you have upcasted embedding or layer norm layers in float32. We will cast back the input in"
+                "The input hidden states seems to be silently casted in float32, this might be related to"
+                " the fact you have upcasted embedding or layer norm layers in float32. We will cast back the input in"
                 f" {target_dtype}."
             )
 
@@ -636,7 +637,7 @@ class Qwen2MoeFlashAttention2(Qwen2MoeAttention):
                         cache_seqlens=position_ids,
                         softmax_scale=softmax_scale,
                         causal=causal,
-                    )   
+                    )
                 else:
                     attn_output = flash_attn_func(
                         query_states,
@@ -675,9 +676,7 @@ class Qwen2MoeFlashAttention2(Qwen2MoeAttention):
         value_layer = index_first_axis(value_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k)
 
         if query_length == kv_seq_len:
-            query_layer = index_first_axis(
-                query_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k
-            )
+            query_layer = index_first_axis(query_layer.reshape(batch_size * kv_seq_len, num_heads, head_dim), indices_k)
             cu_seqlens_q = cu_seqlens_k
             max_seqlen_in_batch_q = max_seqlen_in_batch_k
             indices_q = indices_k
@@ -725,8 +724,10 @@ class Qwen2MoeSdpaAttention(Qwen2MoeAttention):
         if output_attentions:
             # TODO: Improve this warning with e.g. `model.config.attn_implementation = "manual"` once this is implemented.
             logger.warning_once(
-                "Qwen2MoeModel is using Qwen2MoeSdpaAttention, but `torch.nn.functional.scaled_dot_product_attention` does not support `output_attentions=True`. Falling back to the manual attention implementation, "
-                'but specifying the manual implementation will be required from Transformers version v5.0.0 onwards. This warning can be removed using the argument `attn_implementation="eager"` when loading the model.'
+                "Qwen2MoeModel is using Qwen2MoeSdpaAttention, but `torch.nn.functional.scaled_dot_product_attention`"
+                " does not support `output_attentions=True`. Falling back to the manual attention implementation, but"
+                " specifying the manual implementation will be required from Transformers version v5.0.0 onwards. This"
+                ' warning can be removed using the argument `attn_implementation="eager"` when loading the model.'
             )
             return super().forward(
                 hidden_states=hidden_states,
@@ -1153,8 +1154,9 @@ class Qwen2MoeModel(Qwen2MoePreTrainedModel):
             use_legacy_cache = True
             past_key_values = DynamicCache.from_legacy_cache(past_key_values)
             logger.warning_once(
-                "We detected that you are passing `past_key_values` as a tuple and this is deprecated and will be removed in v4.43. "
-                "Please use an appropriate `Cache` class (https://huggingface.co/docs/transformers/v4.41.3/en/internal/generation_utils#transformers.Cache)"
+                "We detected that you are passing `past_key_values` as a tuple and this is deprecated and will be"
+                " removed in v4.43. Please use an appropriate `Cache` class"
+                " (https://huggingface.co/docs/transformers/v4.41.3/en/internal/generation_utils#transformers.Cache)"
             )
 
         if inputs_embeds is None:
@@ -1296,9 +1298,7 @@ class Qwen2MoeModel(Qwen2MoePreTrainedModel):
                 raise ValueError("Custom 4D attention mask should be passed in inverted form with max==0`")
             causal_mask = attention_mask
         else:
-            causal_mask = torch.full(
-                (sequence_length, target_length), fill_value=min_dtype, dtype=dtype, device=device
-            )
+            causal_mask = torch.full((sequence_length, target_length), fill_value=min_dtype, dtype=dtype, device=device)
             if sequence_length != 1:
                 causal_mask = torch.triu(causal_mask, diagonal=1)
             causal_mask *= torch.arange(target_length, device=device) > cache_position.reshape(-1, 1)
@@ -1535,15 +1535,13 @@ class Qwen2MoeForCausalLM(Qwen2MoePreTrainedModel):
         elif use_cache:
             cache_position = cache_position[-input_length:]
 
-        model_inputs.update(
-            {
-                "position_ids": position_ids,
-                "past_key_values": past_key_values,
-                "use_cache": use_cache,
-                "attention_mask": attention_mask,
-                "cache_position": cache_position,
-            }
-        )
+        model_inputs.update({
+            "position_ids": position_ids,
+            "past_key_values": past_key_values,
+            "use_cache": use_cache,
+            "attention_mask": attention_mask,
+            "cache_position": cache_position,
+        })
         return model_inputs
 
     @staticmethod

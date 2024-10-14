@@ -12,12 +12,14 @@ from ktransformers.server.backend.interfaces.exllamav2 import ExllamaThreadConte
 from ktransformers.server.backend.interfaces.exllamav2 import ExllamaInterface
 from ktransformers.server.backend.interfaces.transformers import TransformersInterface
 from ktransformers.server.backend.interfaces.ktransformers import KTransformersInterface
+
+
 class ThreadContextManager:
     lock: Lock
     threads_context: Dict[ObjectID, ThreadContext]
     interface: BackendInterfaceBase
-    
-    def __init__(self,interface) -> None:
+
+    def __init__(self, interface) -> None:
         logger.debug(f"Creating Context Manager")
         self.lock = Lock()
         self.threads_context = {}
@@ -46,9 +48,8 @@ class ThreadContextManager:
     async def get_context_by_thread_id(self, thread_id: ObjectID) -> Optional[ThreadContext]:
         async with self.lock:
             if thread_id in self.threads_context:
-                logger.debug(f'found context for thread {thread_id}')
+                logger.debug(f"found context for thread {thread_id}")
                 return self.threads_context[thread_id]
             else:
-                logger.debug(f'no context for thread {thread_id}')
+                logger.debug(f"no context for thread {thread_id}")
                 return None
-            

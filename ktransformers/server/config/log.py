@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
-'''
-Description  :  
+"""
+Description  :
 Author       : unicornchan
 Date         : 2024-06-12 02:48:39
 Version      : 1.0.0
-LastEditors  : chenxl 
+LastEditors  : chenxl
 LastEditTime : 2024-07-27 01:55:50
-'''
+"""
 
 import codecs
 import logging
@@ -29,7 +29,9 @@ class DailyRotatingFileHandler(BaseRotatingHandler):
      - support rotating daily
     """
 
-    def __init__(self, filename, backupCount=0, encoding=None, delay=False, utc=False, **kwargs): # pylint: disable=unused-argument
+    def __init__(
+        self, filename, backupCount=0, encoding=None, delay=False, utc=False, **kwargs
+    ):  # pylint: disable=unused-argument
         self.backup_count = backupCount
         self.utc = utc
         self.suffix = "%Y-%m-%d"
@@ -38,14 +40,13 @@ class DailyRotatingFileHandler(BaseRotatingHandler):
             os.makedirs(self.base_log_path.parent)
         self.base_filename = self.base_log_path.name
         self.current_filename = self._compute_fn()
-        self.current_log_path = self.base_log_path.with_name(
-            self.current_filename)
-        BaseRotatingHandler.__init__(self, filename, 'a', encoding, delay)
+        self.current_log_path = self.base_log_path.with_name(self.current_filename)
+        BaseRotatingHandler.__init__(self, filename, "a", encoding, delay)
 
     # pylint: disable=unused-argument, invalid-name
     def shouldRollover(self, record):
         """
-        Determine whether to rotate the log. If the log filename corresponding to the current 
+        Determine whether to rotate the log. If the log filename corresponding to the current
         time is not consistent with the currently opened log filename, then it is necessary
         to rotate the log
         Args:
@@ -67,11 +68,10 @@ class DailyRotatingFileHandler(BaseRotatingHandler):
 
         # gen new log file name
         self.current_filename = self._compute_fn()
-        self.current_log_path = self.base_log_path.with_name(
-            self.current_filename)
+        self.current_log_path = self.base_log_path.with_name(self.current_filename)
 
         if not self.delay:
-            self.stream = self._open() # type: ignore
+            self.stream = self._open()  # type: ignore
 
         self.delete_expired_files()
 
@@ -123,7 +123,7 @@ class DailyRotatingFileHandler(BaseRotatingHandler):
             result = []
         else:
             result.sort()
-            result = result[:len(result) - self.backup_count]
+            result = result[: len(result) - self.backup_count]
 
         for file_name in result:
             os.remove(str(self.base_log_path.with_name(file_name)))
@@ -133,42 +133,34 @@ class Logger(object):
     """
     logger class
     """
+
     level_relations = {
-        'debug': logging.DEBUG,
-        'info': logging.INFO,
-        'warn': logging.WARNING,
-        'error': logging.ERROR,
-        'crit': logging.CRITICAL
+        "debug": logging.DEBUG,
+        "info": logging.INFO,
+        "warn": logging.WARNING,
+        "error": logging.ERROR,
+        "crit": logging.CRITICAL,
     }
 
-    def __init__(self, level: str = 'info'):
-        fmt = '%(asctime)s %(levelname)s %(pathname)s[%(lineno)d] %(funcName)s: %(message)s'
+    def __init__(self, level: str = "info"):
+        fmt = "%(asctime)s %(levelname)s %(pathname)s[%(lineno)d] %(funcName)s: %(message)s"
         cfg: Config = Config()
         filename: str = os.path.join(cfg.log_dir, cfg.log_file)
         backup_count: int = cfg.backup_count
-        th = DailyRotatingFileHandler(filename=filename, when='MIDNIGHT', backupCount=backup_count, encoding="utf-8")
+        th = DailyRotatingFileHandler(filename=filename, when="MIDNIGHT", backupCount=backup_count, encoding="utf-8")
         th.setFormatter(logging.Formatter(fmt))
 
-
-        color_fmt = (
-            '%(log_color)s%(asctime)s %(levelname)s %(pathname)s[%(lineno)d]: %(message)s'
-        )
+        color_fmt = "%(log_color)s%(asctime)s %(levelname)s %(pathname)s[%(lineno)d]: %(message)s"
         color_formatter = colorlog.ColoredFormatter(
             color_fmt,
-            log_colors={
-                'DEBUG': 'cyan',
-                'INFO': 'green',
-                'WARNING': 'yellow',
-                'ERROR': 'red',
-                'CRITICAL': 'bold_red'
-            }
+            log_colors={"DEBUG": "cyan", "INFO": "green", "WARNING": "yellow", "ERROR": "red", "CRITICAL": "bold_red"},
         )
 
         sh = logging.StreamHandler()
         sh.setFormatter(color_formatter)
 
         self.logger = logging.getLogger(filename)
-        self.logger.setLevel(self.level_relations.get(level)) # type: ignore
+        self.logger.setLevel(self.level_relations.get(level))  # type: ignore
         self.logger.addHandler(th)
         self.logger.addHandler(sh)
 

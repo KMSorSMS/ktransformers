@@ -1,24 +1,25 @@
 #!/usr/bin/env python
 # coding=utf-8
 """
-Description  : This script defines the `CPUInferKVCache` and `CPUInfer` classes for performing inference 
-               with a Key-Value Cache on the CPU. The `CPUInferKVCache` class is responsible for configuring 
-               and managing key-value caches, updating and retrieving cache data, and handling attention 
-               operations. It supports different cache types (e.g., Q4_0, FP16) and retrieval strategies 
-               (e.g., shared, separate). The `CPUInfer` class handles task submission and synchronization 
-               on the CPU, with optional CUDA stream integration for tasks involving GPU acceleration. 
-               These classes facilitate efficient caching and memory management for deep learning models 
+Description  : This script defines the `CPUInferKVCache` and `CPUInfer` classes for performing inference
+               with a Key-Value Cache on the CPU. The `CPUInferKVCache` class is responsible for configuring
+               and managing key-value caches, updating and retrieving cache data, and handling attention
+               operations. It supports different cache types (e.g., Q4_0, FP16) and retrieval strategies
+               (e.g., shared, separate). The `CPUInfer` class handles task submission and synchronization
+               on the CPU, with optional CUDA stream integration for tasks involving GPU acceleration.
+               These classes facilitate efficient caching and memory management for deep learning models
                that leverage key-value attention mechanisms, particularly on CPU-based systems.
 Author       : djw
 Date         : 2024-08-26 23:25:24
 Version      : 1.0.0
-LastEditors  : djw 
+LastEditors  : djw
 LastEditTime : 2024-08-26 23:25:24
 Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 """
 import sys, os
 from typing import Any
 import torch
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "ktransformers_ext", "build"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "ktransformers_ext", "build", "Release"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "ktransformers_ext", "build", "Debug"))
@@ -100,11 +101,11 @@ class CPUInferKVCache:
     def load_kvcache(self, tensor_file_path: str):
         if not os.path.exists(tensor_file_path):
             raise FileNotFoundError(f"The file {tensor_file_path} does not exist.")
-        return self.kvcache.load_kvcache(tensor_file_path,)
+        return self.kvcache.load_kvcache(
+            tensor_file_path,
+        )
 
-    def dump_kvcache(
-        self, block_table: torch.Tensor, cache_total_len: int, tensor_file_path: str
-    ):
+    def dump_kvcache(self, block_table: torch.Tensor, cache_total_len: int, tensor_file_path: str):
         assert (
             block_table.dim() == 1
             and block_table.dtype == torch.int
@@ -118,9 +119,8 @@ class CPUInferKVCache:
             block_table.device,
         )
 
-        assert (
-            cache_total_len > 0
-            and cache_total_len <= self.config.block_len * block_table.size(0)
+        assert cache_total_len > 0 and cache_total_len <= self.config.block_len * block_table.size(
+            0
         ), "cache_total_len: {}".format(cache_total_len)
 
         if not os.path.exists(os.path.dirname(tensor_file_path)):
@@ -217,9 +217,7 @@ class CPUInferKVCache:
             attn_lse.device,
         )
 
-        assert (
-            layer_idx >= 0 and layer_idx < self.config.layer_num
-        ), "layer_idx: {}".format(layer_idx)
+        assert layer_idx >= 0 and layer_idx < self.config.layer_num, "layer_idx: {}".format(layer_idx)
 
         assert (cache_seqlens is None) or (
             cache_seqlens.dim() == 1
@@ -253,9 +251,7 @@ class CPUInferKVCache:
 
     # k_in: (block_len, kv_head_num, head_dim)
     # v_in: (block_len, kv_head_num, head_dim)
-    def update_kvcache_one_block_fp16(
-        self, k_in: torch.Tensor, v_in: torch.Tensor, layer_id: int, block_idx: int
-    ):
+    def update_kvcache_one_block_fp16(self, k_in: torch.Tensor, v_in: torch.Tensor, layer_id: int, block_idx: int):
         assert (
             k_in.dim() == 3
             and k_in.size(1) == self.config.block_len
@@ -278,9 +274,7 @@ class CPUInferKVCache:
         ), "v_in dim: {}, size: {}, dtype: {}, contiguous: {}, device: {}".format(
             v_in.dim(), v_in.size(), v_in.dtype, v_in.is_contiguous(), v_in.device
         )
-        assert (
-            layer_id >= 0 and layer_id < self.config.layer_num
-        ), "layer_id: {}".format(layer_id)
+        assert layer_id >= 0 and layer_id < self.config.layer_num, "layer_id: {}".format(layer_id)
         assert block_idx >= 0, "block_idx: {}".format(block_idx)
         return self.kvcache.update_one_block_fp16(
             k_in.data_ptr(),
@@ -289,9 +283,7 @@ class CPUInferKVCache:
             block_idx,
         )
 
-    def get_kvcache_one_block_fp16(
-        self, k_in: torch.Tensor, v_in: torch.Tensor, layer_id: int, block_idx: int
-    ):
+    def get_kvcache_one_block_fp16(self, k_in: torch.Tensor, v_in: torch.Tensor, layer_id: int, block_idx: int):
         assert (
             k_in.dim() == 3
             and k_in.size(1) == self.config.block_len
@@ -314,9 +306,7 @@ class CPUInferKVCache:
         ), "v_in dim: {}, size: {}, dtype: {}, contiguous: {}, device: {}".format(
             v_in.dim(), v_in.size(), v_in.dtype, v_in.is_contiguous(), v_in.device
         )
-        assert (
-            layer_id >= 0 and layer_id < self.config.layer_num
-        ), "layer_id: {}".format(layer_id)
+        assert layer_id >= 0 and layer_id < self.config.layer_num, "layer_id: {}".format(layer_id)
         assert block_idx >= 0, "block_idx: {}".format(block_idx)
         return self.kvcache.get_one_block_fp16(
             k_in.data_ptr(),
@@ -325,9 +315,7 @@ class CPUInferKVCache:
             block_idx,
         )
 
-    def update_importance_one_block(
-        self, importance: torch.Tensor, layer_id: int, block_idx: int
-    ):
+    def update_importance_one_block(self, importance: torch.Tensor, layer_id: int, block_idx: int):
         assert (
             importance.dim() == 1
             and importance.size(0) == self.config.block_len
@@ -341,9 +329,7 @@ class CPUInferKVCache:
             importance.is_contiguous(),
             importance.device,
         )
-        assert (
-            layer_id >= 0 and layer_id < self.config.layer_num
-        ), "layer_id: {}".format(layer_id)
+        assert layer_id >= 0 and layer_id < self.config.layer_num, "layer_id: {}".format(layer_id)
         assert block_idx >= 0, "block_idx: {}".format(block_idx)
         return self.kvcache.update_importance_one_block(
             importance.data_ptr(),
@@ -351,9 +337,7 @@ class CPUInferKVCache:
             block_idx,
         )
 
-    def get_importance_one_block(
-        self, importance: torch.Tensor, layer_id: int, block_idx: int
-    ):
+    def get_importance_one_block(self, importance: torch.Tensor, layer_id: int, block_idx: int):
         assert (
             importance.dim() == 1
             and importance.size(0) == self.config.block_len
@@ -367,9 +351,7 @@ class CPUInferKVCache:
             importance.is_contiguous(),
             importance.device,
         )
-        assert (
-            layer_id >= 0 and layer_id < self.config.layer_num
-        ), "layer_id: {}".format(layer_id)
+        assert layer_id >= 0 and layer_id < self.config.layer_num, "layer_id: {}".format(layer_id)
         assert block_idx >= 0, "block_idx: {}".format(block_idx)
         return self.kvcache.get_importance_one_block(
             importance.data_ptr(),
@@ -393,9 +375,7 @@ class CPUInferKVCache:
             anchor.is_contiguous(),
             anchor.device,
         )
-        assert (
-            layer_id >= 0 and layer_id < self.config.layer_num
-        ), "layer_id: {}".format(layer_id)
+        assert layer_id >= 0 and layer_id < self.config.layer_num, "layer_id: {}".format(layer_id)
         assert block_idx >= 0, "block_idx: {}".format(block_idx)
         return self.kvcache.get_anchor_one_block(
             anchor.data_ptr(),
@@ -403,9 +383,7 @@ class CPUInferKVCache:
             block_idx,
         )
 
-    def update_anchor_one_block(
-        self, anchor: torch.Tensor, layer_id: int, block_idx: int
-    ):
+    def update_anchor_one_block(self, anchor: torch.Tensor, layer_id: int, block_idx: int):
         assert (
             anchor.dim() == 3
             and anchor.size(0) == self.config.kv_head_num
@@ -421,9 +399,7 @@ class CPUInferKVCache:
             anchor.is_contiguous(),
             anchor.device,
         )
-        assert (
-            layer_id >= 0 and layer_id < self.config.layer_num
-        ), "layer_id: {}".format(layer_id)
+        assert layer_id >= 0 and layer_id < self.config.layer_num, "layer_id: {}".format(layer_id)
         assert block_idx >= 0, "block_idx: {}".format(block_idx)
         return self.kvcache.update_anchor_one_block(
             anchor.data_ptr(),
@@ -544,7 +520,7 @@ class CPUInferKVCache:
             batch_size,
             max_block_num,
             past_len.data_ptr(),
-            q_len
+            q_len,
         )
 
     def get_kvcache_q4(
@@ -701,9 +677,7 @@ class CPUInferKVCache:
             local,
         )
 
-    def get_all_kvcache_one_layer(
-        self, k_in: torch.Tensor, v_in: torch.Tensor, layer_id: int
-    ):
+    def get_all_kvcache_one_layer(self, k_in: torch.Tensor, v_in: torch.Tensor, layer_id: int):
         return self.kvcache.get_all_kvcache_one_layer(
             k_in.data_ptr(),
             v_in.data_ptr(),
@@ -727,6 +701,7 @@ class CPUInferKVCache:
 
 class CPUInfer:
     cpuinfer = None
+
     def __init__(self, thread_num):
         CPUInfer.cpuinfer = cpuinfer_ext.CPUInfer(thread_num)
 
@@ -741,6 +716,3 @@ class CPUInfer:
 
     def sync_with_cuda_stream(self, current_cuda_stream):
         CPUInfer.cpuinfer.sync_with_cuda_stream(current_cuda_stream)
-
-
-        

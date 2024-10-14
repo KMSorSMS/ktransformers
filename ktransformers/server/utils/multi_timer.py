@@ -67,13 +67,12 @@ class Profiler:
         self.create_timer(name)
         self.start_timer(name)
 
-
     # Counter
-    def inc(self,key:str,delta:int=1):
-        self.counters[key] = self.counters.get(key,0) + delta
+    def inc(self, key: str, delta: int = 1):
+        self.counters[key] = self.counters.get(key, 0) + delta
 
-    def set_counter(self,key:str,to=0):
+    def set_counter(self, key: str, to=0):
         self.counters[key] = to
 
-    def get_counter(self,key:str):
-        return self.counters.get(key,0)
+    def get_counter(self, key: str):
+        return self.counters.get(key, 0)

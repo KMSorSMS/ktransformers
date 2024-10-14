@@ -3,9 +3,10 @@ from typing import Optional
 from uuid import uuid4
 
 from ktransformers.server.models.assistants.messages import Message
-from ktransformers.server.schemas.assistants.messages import MessageCore, MessageCreate,  MessageObject
-from ktransformers.server.schemas.base import Order,ObjectID
+from ktransformers.server.schemas.assistants.messages import MessageCore, MessageCreate, MessageObject
+from ktransformers.server.schemas.base import Order, ObjectID
 from ktransformers.server.utils.sql_utils import SQLUtil
+
 
 class MessageDatabaseManager:
     def __init__(self) -> None:
@@ -35,9 +36,9 @@ class MessageDatabaseManager:
     def create_message_object(thread_id: ObjectID, run_id: ObjectID, message: MessageCreate):
         core = message.to_core()
         return MessageObject(
-            **core.model_dump(mode='json'),
+            **core.model_dump(mode="json"),
             id=str(uuid4()),
-            object='thread.message',
+            object="thread.message",
             created_at=int(time()),
             thread_id=thread_id,
             run_id=run_id,
@@ -51,8 +52,7 @@ class MessageDatabaseManager:
         with self.sql_util.get_db() as db:
             self.sql_util.db_merge_commit(db, db_message)
 
-    def db_list_messages_of_thread(
-            self, thread_id: str, limit: Optional[int] = None, order: Order = Order.DESC):
+    def db_list_messages_of_thread(self, thread_id: str, limit: Optional[int] = None, order: Order = Order.DESC):
 
         # logger.debug(
         #     f"list messages of: {thread_id}, limit {limit}, order {order}")
@@ -71,16 +71,14 @@ class MessageDatabaseManager:
 
     def db_get_message_by_id(self, thread_id: ObjectID, message_id: ObjectID) -> MessageObject:
         with self.sql_util.get_db() as db:
-            message = db.query(Message).filter(
-                Message.id == message_id).first()
+            message = db.query(Message).filter(Message.id == message_id).first()
         assert message.thread_id == thread_id
         message_info = MessageObject.model_validate(message.__dict__)
         return message_info
 
     def db_delete_message_by_id(self, thread_id: ObjectID, message_id: ObjectID):
         with self.sql_util.get_db() as db:
-            message = db.query(Message).filter(
-                Message.id == message_id).first()
+            message = db.query(Message).filter(Message.id == message_id).first()
             assert message.thread_id == thread_id
             db.delete(message)
             db.commit()

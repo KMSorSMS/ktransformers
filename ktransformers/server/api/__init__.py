@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from .ollama import router as ollama_router
-from .openai import router as openai_router,post_db_creation_operations
+from .openai import router as openai_router, post_db_creation_operations
 from .web import router as web_router
 
 router = APIRouter()

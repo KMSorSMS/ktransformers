@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
-'''
-Description  :  
+"""
+Description  :
 Author       : chenxl
 Date         : 2024-06-12 09:12:58
 Version      : 1.0.0
-LastEditors  : chenxl 
+LastEditors  : chenxl
 LastEditTime : 2024-07-27 01:56:04
-'''
+"""
 
 from urllib.parse import urlparse
 import os
@@ -28,6 +28,7 @@ class SQLUtil(metaclass=Singleton):
     """
     database connections init and management
     """
+
     sqlalchemy_engine = None
     session_local = None
 
@@ -62,9 +63,9 @@ class SQLUtil(metaclass=Singleton):
                 logger.error("Unsupported database type %s", cfg.db_type)
                 exit(-1)
             SQLUtil.sqlalchemy_engine = create_engine(
-                db_url, connect_args={"check_same_thread": False}, pool_size=pool_size)
-            SQLUtil.session_local = sessionmaker(
-                autocommit=False, autoflush=False, bind=SQLUtil.sqlalchemy_engine)
+                db_url, connect_args={"check_same_thread": False}, pool_size=pool_size
+            )
+            SQLUtil.session_local = sessionmaker(autocommit=False, autoflush=False, bind=SQLUtil.sqlalchemy_engine)
 
     @staticmethod
     def create_sqllite_url(cfg):
@@ -74,10 +75,10 @@ class SQLUtil(metaclass=Singleton):
         path: str = cfg.db_host
         database: str = cfg.db_database
         absolute_path: str = os.path.join(path, database)
-        url = 'sqlite:///' + absolute_path
+        url = "sqlite:///" + absolute_path
         try:
             result = urlparse(url)
-            if all([result.scheme, result.path, result.scheme == 'sqlite']):
+            if all([result.scheme, result.path, result.scheme == "sqlite"]):
                 return url
             else:
                 logger.error("invalid sqllite url: %s", url)

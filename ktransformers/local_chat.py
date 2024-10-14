@@ -1,8 +1,8 @@
 """
-Description  :  
+Description  :
 Author       : Boxin Zhang, Azure-Tang
 Version      : 0.1.0
-Copyright (c) 2024 by KVCache.AI, All Rights Reserved. 
+Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 """
 
 import os
@@ -37,9 +37,7 @@ custom_models = {
     "MixtralForCausalLM": MixtralForCausalLM,
 }
 
-ktransformer_rules_dir = (
-    os.path.dirname(os.path.abspath(__file__)) + "/optimize/optimize_rules/"
-)
+ktransformer_rules_dir = os.path.dirname(os.path.abspath(__file__)) + "/optimize/optimize_rules/"
 default_optimize_rules = {
     "DeepseekV2ForCausalLM": ktransformer_rules_dir + "DeepSeek-V2-Chat.yaml",
     "Qwen2MoeForCausalLM": ktransformer_rules_dir + "Qwen2-57B-A14B-Instruct.yaml",
@@ -66,9 +64,7 @@ def local_chat(
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
     if mode == "long_context":
-        assert (
-            config.architectures[0] == "LlamaForCausalLM"
-        ), "only LlamaForCausalLM support long_context mode"
+        assert config.architectures[0] == "LlamaForCausalLM", "only LlamaForCausalLM support long_context mode"
         torch.set_default_dtype(torch.float16)
     else:
         torch.set_default_dtype(config.torch_dtype)
@@ -76,9 +72,7 @@ def local_chat(
     with torch.device("meta"):
         if config.architectures[0] in custom_models:
             print("using custom modeling_xxx.py.")
-            if (
-                "Qwen2Moe" in config.architectures[0]
-            ):  # Qwen2Moe must use flash_attention_2 to avoid overflow.
+            if "Qwen2Moe" in config.architectures[0]:  # Qwen2Moe must use flash_attention_2 to avoid overflow.
                 config._attn_implementation = "flash_attention_2"
             if "Llama" in config.architectures[0]:
                 config._attn_implementation = "eager"
@@ -96,13 +90,12 @@ def local_chat(
             print("using default_optimize_rule for", config.architectures[0])
             optimize_rule_path = default_optimize_rules[config.architectures[0]]
         else:
-            optimize_rule_path = input(
-                "please input the path of your rule file(yaml file containing optimize rules):"
-            )
+            optimize_rule_path = input("please input the path of your rule file(yaml file containing optimize rules):")
 
     if gguf_path is None:
         gguf_path = input(
-            "please input the path of your gguf file(gguf file in the dir containing input gguf file must all belong to current model):"
+            "please input the path of your gguf file(gguf file in the dir containing input gguf file must all belong to"
+            " current model):"
         )
     optimize_and_load_gguf(model, optimize_rule_path, gguf_path, config)
 
@@ -144,20 +137,13 @@ def local_chat(
             content = open(content, "r").read()
         messages = his_content + [{"role": "user", "content": content}]
         print("messages:", messages)
-        input_tensor = tokenizer.apply_chat_template(
-            messages, add_generation_prompt=True, return_tensors="pt"
-        )
+        input_tensor = tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt")
         if mode == "long_context":
             assert (
-                Config().long_context_config["max_seq_len"]
-                > input_tensor.shape[1] + max_new_tokens
+                Config().long_context_config["max_seq_len"] > input_tensor.shape[1] + max_new_tokens
             ), "please change max_seq_len in  ~/.ktransformers/config.yaml"
-        torch.set_default_dtype(
-            torch.bfloat16
-        )  # TODO: Remove this, replace dtype using config
-        generated = prefill_and_generate(
-            model, tokenizer, input_tensor.cuda(), max_new_tokens, use_cuda_graph, mode
-        )
+        torch.set_default_dtype(torch.bfloat16)  # TODO: Remove this, replace dtype using config
+        generated = prefill_and_generate(model, tokenizer, input_tensor.cuda(), max_new_tokens, use_cuda_graph, mode)
         his_content += [
             {"role": "user", "content": content},
             {"role": "assitant", "content": generated},

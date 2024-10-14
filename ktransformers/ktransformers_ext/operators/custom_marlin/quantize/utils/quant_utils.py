@@ -1,4 +1,5 @@
 """This file is used for /tests and /benchmarks"""
+
 import numpy
 import torch
 
@@ -17,7 +18,7 @@ def permute_rows(q_w: torch.Tensor, w_ref: torch.Tensor, group_size: int):
     orig_device = q_w.device
     k_size, _ = q_w.shape
 
-    g_idx = torch.zeros((k_size, ), dtype=torch.int32)
+    g_idx = torch.zeros((k_size,), dtype=torch.int32)
     for i in range(k_size):
         g_idx[i] = i // group_size
 
@@ -36,16 +37,13 @@ def permute_rows(q_w: torch.Tensor, w_ref: torch.Tensor, group_size: int):
     )
 
 
-def quantize_weights(w: torch.Tensor, num_bits: int, group_size: int,
-                     act_order: bool):
+def quantize_weights(w: torch.Tensor, num_bits: int, group_size: int, act_order: bool):
     orig_device = w.device
     size_k, size_n = w.shape
 
     assert w.is_floating_point(), "w must be float"
     assert num_bits in SUPPORTED_NUM_BITS, f"Unsupported num_bits = {num_bits}"
-    assert group_size in SUPPORTED_GROUP_SIZES + [
-        size_k
-    ], f"Unsupported groupsize = {group_size}"
+    assert group_size in SUPPORTED_GROUP_SIZES + [size_k], f"Unsupported groupsize = {group_size}"
 
     if group_size == -1:
         group_size = size_k
@@ -90,10 +88,9 @@ def quantize_weights(w: torch.Tensor, num_bits: int, group_size: int,
     g_idx = torch.empty(0, dtype=torch.int, device=w.device)
     rand_perm = torch.empty(0, dtype=torch.int, device=w.device)
     if act_order:
-        assert (
-            group_size < size_k
-        ), "For act_order, groupsize = {} must be less than size_k = {}".format(
-            group_size, size_k)
+        assert group_size < size_k, "For act_order, groupsize = {} must be less than size_k = {}".format(
+            group_size, size_k
+        )
 
         w_ref, q_w, g_idx, rand_perm = permute_rows(q_w, w_ref, group_size)
 
@@ -109,8 +106,7 @@ def quantize_weights(w: torch.Tensor, num_bits: int, group_size: int,
 def sort_weights(q_w: torch.Tensor, g_idx: torch.Tensor):
     orig_device = q_w.device
 
-    sort_indices = torch.argsort(g_idx).to(
-        dtype=torch.int32)  # Sort based on g_idx
+    sort_indices = torch.argsort(g_idx).to(dtype=torch.int32)  # Sort based on g_idx
 
     g_idx = g_idx[sort_indices].contiguous()
     q_w = q_w[sort_indices, :].contiguous()

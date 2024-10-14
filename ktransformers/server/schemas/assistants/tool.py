@@ -51,4 +51,4 @@ class RelatedThreadsResource(BaseModel):
     thread_ids: List[ObjectID] = Field(default=[])
 
 
-ToolResource = Union[CodeInterpreterResource,FileSearchResource,RelatedThreadsResource] 
+ToolResource = Union[CodeInterpreterResource, FileSearchResource, RelatedThreadsResource]
