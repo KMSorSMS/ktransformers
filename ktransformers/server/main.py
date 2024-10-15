@@ -3,9 +3,9 @@ import re
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 import uvicorn.logging
-import argparse
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
+from ktransformers.server.args import ArgumentParser
 from ktransformers.server.config.config import Config
 from ktransformers.server.utils.create_interface import create_interface
 from ktransformers.server.backend.args import default_args
@@ -101,36 +101,10 @@ def custom_openapi(app):
 
 def main():
     cfg = Config()
-    parser = argparse.ArgumentParser(prog="kvcache.ai", description="Ktransformers")
-    parser.add_argument("--host", type=str, default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=cfg.server_port)
-    parser.add_argument("--ssl_keyfile", type=str)
-    parser.add_argument("--ssl_certfile", type=str)
-    parser.add_argument("--web", type=bool, default=False)
-    parser.add_argument("--model_name", type=str, default=cfg.model_name)
-    parser.add_argument("--model_path", type=str, default=cfg.model_path)
-    parser.add_argument("--device", type=str, default=cfg.model_device, help="Warning: Abandoning this parameter")
-    parser.add_argument("--gguf_path", type=str, default=cfg.gguf_path)
-    parser.add_argument("--optimize_config_path", default=None, type=str, required=False)
-    parser.add_argument("--cpu_infer", type=int, default=cfg.cpu_infer)
-    parser.add_argument("--type", type=str, default=cfg.backend_type)
+    arg_parser = ArgumentParser(cfg)
 
     # 初始化消息
-    args = parser.parse_args()
-    cfg.model_name = args.model_name
-    cfg.model_path = args.model_path
-    cfg.model_device = args.device
-    cfg.mount_web = args.web
-    cfg.server_ip = args.host
-    cfg.server_port = args.port
-    cfg.cpu_infer = args.cpu_infer
-    cfg.backend_type = args.type
-
-    default_args.model_dir = args.model_path
-    default_args.device = args.device
-    default_args.gguf_path = args.gguf_path
-    default_args.optimize_config_path = args.optimize_config_path
-
+    args = arg_parser.parse_args()
     app = create_app()
     custom_openapi(app)
     create_interface(config=cfg, default_args=default_args)
