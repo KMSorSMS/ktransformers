@@ -146,6 +146,9 @@ class OllamaShowResponse(BaseModel):
     details: OllamaShowDetial
     model_info: OllamaModelInfo
 
+    class Config:
+        protected_namespaces = ()
+
 
 @router.post("/show", tags=["ollama"])
 async def show(request: Request, input: OllamaShowRequest):
