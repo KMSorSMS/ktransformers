@@ -87,11 +87,11 @@ class Config(metaclass=Singleton):
         # model config
         self.model: dict = cfg.get("model", {})
         self.backend_type: str = self.model.get("type", "transformers")
-        self.model_path: str = self.model.get("path", "/mnt/data/model/DeepSeek-Coder-V2-Instruct/")
+        self.model_path: str = self.model.get("path", "")
         self.model_name: str = self.model.get("name", "")
         self.model_device: str = self.model.get("device", "cuda:0")
         self.gguf_path: Optional[str] = self.model.get(
-            "gguf_path", "/models/DeepSeek-Coder-V2-Instruct-GGUF/DeepSeek-Coder-V2-Instruct-Q4_K_M.gguf"
+            "gguf_path", None
         )
         self.model_cache_lens = self.model.get("cache_lens")
         self.optimize_config_path: Optional[str] = self.model.get(
