@@ -6,7 +6,7 @@ from ktransformers.server.config.config import Config
 class ConfigArgs(BaseModel):
     model_name: Optional[str] = Field(..., description="Model name")
     model_dir: Optional[str] = Field(..., description="Path to model directory")
-    optimize_config_path: Optional[str] = Field(None, description="Path of your optimize config json file")
+    optimize_config_path: Optional[str] = Field(None, description="Path of your optimize config yml file")
     gguf_path: Optional[str] = Field(None, description="Path of your gguf file")
 
     class Config:
