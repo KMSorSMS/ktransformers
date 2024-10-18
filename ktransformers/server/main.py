@@ -107,7 +107,7 @@ def main():
     args = arg_parser.parse_args()
     app = create_app()
     custom_openapi(app)
-    create_interface(config=cfg, default_args=default_args)
+    create_interface(config=cfg, default_args=cfg)
     run_api(
         app=app,
         host=args.host,
