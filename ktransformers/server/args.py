@@ -8,18 +8,18 @@ class ArgumentParser:
 
     def parse_args(self):
         parser = argparse.ArgumentParser(prog="kvcache.ai", description="Ktransformers")
-        parser.add_argument("--host", type=str, default="0.0.0.0")
+        parser.add_argument("--host", type=str, default=self.cfg.server_ip)
         parser.add_argument("--port", type=int, default=self.cfg.server_port)
         parser.add_argument("--ssl_keyfile", type=str)
         parser.add_argument("--ssl_certfile", type=str)
-        parser.add_argument("--web", type=bool, default=False)
+        parser.add_argument("--web", type=bool, default=self.cfg.mount_web)
         parser.add_argument("--model_name", type=str, default=self.cfg.model_name)
-        parser.add_argument("--model_path", type=str, default=self.cfg.model_path)
+        parser.add_argument("--model_dir", type=str, default=self.cfg.model_dir)
         parser.add_argument(
             "--device", type=str, default=self.cfg.model_device, help="Warning: Abandoning this parameter"
         )
         parser.add_argument("--gguf_path", type=str, default=self.cfg.gguf_path)
-        parser.add_argument("--optimize_config_path", default=None, type=str, required=False)
+        parser.add_argument("--optimize_config_path", default=self.cfg.optimize_config_path, type=str, required=False)
         parser.add_argument("--cpu_infer", type=int, default=self.cfg.cpu_infer)
         parser.add_argument("--type", type=str, default=self.cfg.backend_type)
 
@@ -108,57 +108,4 @@ class ArgumentParser:
         self.cfg.server_ip = args.host
         self.cfg.server_port = args.port
         self.cfg.backend_type = args.type
-        cfg = self.cfg
-
-        default_args.model_name = cfg.model_name
-        default_args.model_dir = cfg.model_path
-        default_args.optimize_config_path = cfg.optimize_config_path
-        default_args.gguf_path = cfg.gguf_path
-        default_args.paged = cfg.paged
-        default_args.total_context = cfg.total_context
-        default_args.max_batch_size = cfg.max_batch_size
-        default_args.max_chunk_size = cfg.max_chunk_size
-        default_args.max_new_tokens = cfg.max_new_tokens
-        default_args.json_mode = cfg.json_mode
-        default_args.healing = cfg.healing
-        default_args.ban_strings = cfg.ban_strings
-        default_args.gpu_split = cfg.gpu_split
-        default_args.length = cfg.length
-        default_args.rope_scale = cfg.rope_scale
-        default_args.rope_alpha = cfg.rope_alpha
-        default_args.no_flash_attn = cfg.no_flash_attn
-        default_args.low_mem = cfg.low_mem
-        default_args.experts_per_token = cfg.experts_per_token
-        default_args.load_q4 = cfg.load_q4
-        default_args.fast_safetensors = cfg.fast_safetensors
-        default_args.draft_model_dir = cfg.draft_model_dir
-        default_args.no_draft_scale = cfg.no_draft_scale
-        default_args.modes = cfg.modes
-        default_args.mode = cfg.mode
-        default_args.username = cfg.username
-        default_args.botname = cfg.botname
-        default_args.system_prompt = cfg.system_prompt
-        default_args.temperature = cfg.temperature
-        default_args.smoothing_factor = cfg.smoothing_factor
-        default_args.dynamic_temperature = cfg.dynamic_temperature
-        default_args.top_k = cfg.top_k
-        default_args.top_p = cfg.top_p
-        default_args.top_a = cfg.top_a
-        default_args.skew = cfg.skew
-        default_args.typical = cfg.typical
-        default_args.repetition_penalty = cfg.repetition_penalty
-        default_args.frequency_penalty = cfg.frequency_penalty
-        default_args.presence_penalty = cfg.presence_penalty
-        default_args.max_response_tokens = cfg.max_response_tokens
-        default_args.response_chunk = cfg.response_chunk
-        default_args.no_code_formatting = cfg.no_code_formatting
-        default_args.cache_8bit = cfg.cache_8bit
-        default_args.cache_q4 = cfg.cache_q4
-        default_args.ngram_decoding = cfg.ngram_decoding
-        default_args.print_timings = cfg.print_timings
-        default_args.amnesia = cfg.amnesia
-        default_args.batch_size = cfg.batch_size
-        default_args.cache_lens = cfg.cache_lens
-        default_args.device = cfg.device
-
         return args
