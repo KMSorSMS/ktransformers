@@ -5,6 +5,7 @@ Version      : 0.1.0
 Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 """
 
+import asyncio
 import os
 import platform
 import sys
@@ -150,5 +151,73 @@ def local_chat(
         ]
 
 
+def local_chat_new(
+    model_dir: str | None = Config().model_dir,
+    optimize_rule_path: str = Config().optimize_config_path,
+    gguf_path: str | None = Config().gguf_path,
+    max_new_tokens: int = 1000,
+    cpu_infer: int = Config().cpu_infer,
+    use_cuda_graph: bool = True,
+    prompt_file: str | None = None,
+    mode: str = "normal",
+):
+    config = Config()
+    if config.backend_type == "transformers":
+        from ktransformers.server.backend.interfaces.transformers import TransformersInterface as BackendInterface
+    elif config.backend_type == "exllamav2":
+        from ktransformers.server.backend.interfaces.exllamav2 import ExllamaInterface as BackendInterface
+    elif config.backend_type == "ktransformers":
+        from ktransformers.server.backend.interfaces.ktransformers import KTransformersInterface as BackendInterface
+    else:
+        raise NotImplementedError(f"{config.backend_type} not implemented")
+    interface = BackendInterface(config)
+
+    system = platform.system()
+    if system == "Windows":
+        os.system("cls")
+    else:
+        os.system("clear")
+    # add a history chat content
+    his_content = []
+    while True:
+        content = input("Chat: ")
+        if content.startswith('"""'):  # prefix """
+            # multi lines input
+            content = content[3:] + "\n"
+            while True:
+                line = input("")
+                if line.endswith('"""'):
+                    # end multi lines input
+                    line = line[:-3]  # suffix """
+                    if line:
+                        content += line + "\n"
+                    break
+                else:
+                    content += line + "\n"
+        if content == "":
+            if prompt_file != None:
+                content = open(prompt_file, "r").read()
+            else:
+                content = "Please write a piece of quicksort code in C++."
+        elif os.path.isfile(content):
+            content = open(content, "r").read()
+        messages = his_content + [{"role": "user", "content": content}]
+        print("messages:", messages)
+
+        #    generated = interface.inference()
+        async def async_inference(messages):
+            generated = ""
+            async for token in interface.inference(messages, "local_chat"):
+                generated += token
+            return generated
+
+        generated = asyncio.run(async_inference(messages))
+        his_content += [
+            {"role": "user", "content": content},
+            {"role": "assitant", "content": generated},
+        ]
+
+
 if __name__ == "__main__":
-    fire.Fire(local_chat)
+    # fire.Fire(local_chat)
+    fire.Fire(local_chat_new)

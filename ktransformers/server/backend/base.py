@@ -145,7 +145,7 @@ class ThreadContext:
 
         async for token in self.interface.inference(local_messages, self.thread.id):
             if self.run.status == RunObject.Status.cancelling:
-                logger.warn(f"Run {self.run.id} cancelling")
+                logger.warning(f"Run {self.run.id} cancelling")
                 break
             yield reply_message.append_message_delta(token)
             response_str_count += 1
