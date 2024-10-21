@@ -91,7 +91,7 @@ class Config(metaclass=Singleton):
         self.model_name: str = self.model.get("name", "")
         self.model_device: str = self.model.get("device", "cuda:0")
         self.gguf_path: Optional[str] = self.model.get("gguf_path", None)
-        self.model_cache_lens = self.model.get("cache_lens")
+        # self.model_cache_lens = self.model.get("cache_lens")
         self.optimize_config_path: Optional[str] = self.model.get(
             "optimize_config_path", "./ktransformers/optimize/optimize_rules/DeepSeek-V2-Chat.yaml"
         )
@@ -176,3 +176,7 @@ class Config(metaclass=Singleton):
         self.preselect_block_count = self.long_context_config.get("preselect_block_count", 32)
         self.layer_step = self.long_context_config.get("layer_step", 1)
         self.token_step = self.long_context_config.get("token_step", 100)
+
+        # local chat
+        self.local_chat_config: dict = cfg.get("local_chat", {})
+        self.prompt_file = self.local_chat_config.get("prompt_file", None)

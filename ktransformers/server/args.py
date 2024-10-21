@@ -24,7 +24,7 @@ class ArgumentParser:
         parser.add_argument("--type", type=str, default=self.cfg.backend_type)
 
         # model configs
-        parser.add_argument("--model_cache_lens", type=int, default=self.cfg.model_cache_lens)  # int?
+        # parser.add_argument("--model_cache_lens", type=int, default=self.cfg.cache_lens)  # int?
         parser.add_argument("--paged", type=bool, default=self.cfg.paged)
         parser.add_argument("--total_context", type=int, default=self.cfg.total_context)
         parser.add_argument("--max_batch_size", type=int, default=self.cfg.max_batch_size)
@@ -96,6 +96,8 @@ class ArgumentParser:
         # file config
         parser.add_argument("--file_upload_dir", type=str, default=self.cfg.file_upload_dir)
         parser.add_argument("--assistant_store_dir", type=str, default=self.cfg.assistant_store_dir)
+        # local chat
+        parser.add_argument("--prompt_file", type=str, default=self.cfg.prompt_file)
 
         args = parser.parse_args()
         # set config from args
