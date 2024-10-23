@@ -8,6 +8,12 @@ Copyright (c) 2024 by KVCache.AI, All Rights Reserved.
 import os
 import platform
 import sys
+from uuid import uuid4
+from ktransformers.server.config.config import Config
+from ktransformers.server.backend.args import default_args
+# from ktransformers.server.utils.create_interface import create_interface
+# from ktransformers.server.backend.base import BackendInterfaceBase
+# from ktransformers.server.utils.create_interface import get_interface
 
 project_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.insert(0, project_dir)
@@ -58,32 +64,19 @@ def local_chat(
 ):
 
     torch.set_grad_enabled(False)
+    cfg = Config()
+    cfg.backend_type = "ktransformers"
+    cfg.cpu_infer = cpu_infer
+    cfg.model_path = model_path
+    cfg.mode = mode
+    cfg.max_new_tokens = max_new_tokens
+    default_args.max_new_tokens = cfg.max_new_tokens
+    default_args.model_dir = cfg.model_path
+    from ktransformers.server.backend.interfaces.ktransformers import KTransformersInterface as BackendInterface
+    interface = BackendInterface(cfg)
 
-    Config().cpu_infer = cpu_infer
 
-    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     config = AutoConfig.from_pretrained(model_path, trust_remote_code=True)
-    if mode == "long_context":
-        assert config.architectures[0] == "LlamaForCausalLM", "only LlamaForCausalLM support long_context mode"
-        torch.set_default_dtype(torch.float16)
-    else:
-        torch.set_default_dtype(config.torch_dtype)
-
-    with torch.device("meta"):
-        if config.architectures[0] in custom_models:
-            print("using custom modeling_xxx.py.")
-            if "Qwen2Moe" in config.architectures[0]:  # Qwen2Moe must use flash_attention_2 to avoid overflow.
-                config._attn_implementation = "flash_attention_2"
-            if "Llama" in config.architectures[0]:
-                config._attn_implementation = "eager"
-            if "Mixtral" in config.architectures[0]:
-                config._attn_implementation = "flash_attention_2"
-
-            model = custom_models[config.architectures[0]](config)
-        else:
-            model = AutoModelForCausalLM.from_config(
-                config, trust_remote_code=True, attn_implementation="flash_attention_2"
-            )
 
     if optimize_rule_path is None:
         if config.architectures[0] in default_optimize_rules:
@@ -97,12 +90,36 @@ def local_chat(
             "please input the path of your gguf file(gguf file in the dir containing input gguf file must all belong to"
             " current model):"
         )
-    optimize_and_load_gguf(model, optimize_rule_path, gguf_path, config)
 
-    model.generation_config = GenerationConfig.from_pretrained(model_path)
-    if model.generation_config.pad_token_id is None:
-        model.generation_config.pad_token_id = model.generation_config.eos_token_id
-    model.eval()
+    tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
+    # if mode == "long_context":
+    #     assert config.architectures[0] == "LlamaForCausalLM", "only LlamaForCausalLM support long_context mode"
+    #     torch.set_default_dtype(torch.float16)
+    # else:
+    #     torch.set_default_dtype(config.torch_dtype)
+
+    # with torch.device("meta"):
+    #     if config.architectures[0] in custom_models:
+    #         print("using custom modeling_xxx.py.")
+    #         if "Qwen2Moe" in config.architectures[0]:  # Qwen2Moe must use flash_attention_2 to avoid overflow.
+    #             config._attn_implementation = "flash_attention_2"
+    #         if "Llama" in config.architectures[0]:
+    #             config._attn_implementation = "eager"
+    #         if "Mixtral" in config.architectures[0]:
+    #             config._attn_implementation = "flash_attention_2"
+
+    #         model = custom_models[config.architectures[0]](config)
+    #     else:
+    #         model = AutoModelForCausalLM.from_config(
+    #             config, trust_remote_code=True, attn_implementation="flash_attention_2"
+    #         )
+
+    # optimize_and_load_gguf(model, optimize_rule_path, gguf_path, config)
+
+    # model.generation_config = GenerationConfig.from_pretrained(model_path)
+    # if model.generation_config.pad_token_id is None:
+    #     model.generation_config.pad_token_id = model.generation_config.eos_token_id
+    # model.eval()
     logging.basicConfig(level=logging.INFO)
 
     system = platform.system()
@@ -137,13 +154,31 @@ def local_chat(
             content = open(content, "r").read()
         messages = his_content + [{"role": "user", "content": content}]
         print("messages:", messages)
-        input_tensor = tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt")
+        # input_tensor = tokenizer.apply_chat_template(messages, add_generation_prompt=True, return_tensors="pt")
         if mode == "long_context":
             assert (
                 Config().long_context_config["max_seq_len"] > input_tensor.shape[1] + max_new_tokens
             ), "please change max_seq_len in  ~/.ktransformers/config.yaml"
         torch.set_default_dtype(torch.bfloat16)  # TODO: Remove this, replace dtype using config
-        generated = prefill_and_generate(model, tokenizer, input_tensor.cuda(), max_new_tokens, use_cuda_graph, mode)
+
+        """
+        async def inference(self, local_messages, thread_id: str):
+            self.profiler.create_and_start_timer("tokenize")
+            if isinstance(local_messages, List):
+                input_ids = self.format_and_tokenize_input_ids(thread_id, local_messages)
+            elif isinstance(local_messages, str):
+                input_ids = self.tokenize_prompt(local_messages)
+        """
+        # generated = prefill_and_generate(model, tokenizer, input_tensor.cuda(), max_new_tokens, use_cuda_graph, mode)
+        async def async_generation(messages, id):
+            res=""
+            async for token in interface.inference(messages, id):
+                res+=token
+            return res
+
+        # TODO: messages' format???
+        id = str(uuid4())
+        generated = async_generation(messages, id)
         his_content += [
             {"role": "user", "content": content},
             {"role": "assitant", "content": generated},

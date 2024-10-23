@@ -87,6 +87,7 @@ class Config(metaclass=Singleton):
         # model config
         self.model: dict = cfg.get("model", {})
         self.backend_type: str = self.model.get("type", "transformers")
+        self.model_dir: str = self.model.get("path", "")
         self.model_path: str = self.model.get("path", "")
         self.model_name: str = self.model.get("name", "")
         self.model_device: str = self.model.get("device", "cuda:0")
