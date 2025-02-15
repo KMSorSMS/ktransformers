@@ -169,10 +169,7 @@
 <li><a href="#v021">V0.2.1</a>
 <ul>
 <li><a href="#memory-consumption">Memory consumption:</a></li>
-</ul>
-</li>
-<li><a href="#change-log">Change Log</a>
-<ul>
+<li><a href="#change-log">Change Log</a></li>
 <li><a href="#benchmark-results">Benchmark Results</a></li>
 </ul>
 </li>
@@ -281,7 +278,7 @@ Memory: standard DDR5-4800 server DRAM (1 TB), each socket with 8×DDR5-4800</p>
 <li>Single socket: 382G DRAM, at least 14GB VRAM</li>
 <li>Dual socket: 1T DRAM, at least 14GB VRAM</li>
 </ul>
-<h3 id="change-log"><a class="header" href="#change-log">Change Log</a></h3>
+<h4 id="change-log"><a class="header" href="#change-log">Change Log</a></h4>
 <ul>
 <li>We extend the context length and add a subtle improvement:<br>
 Integrated the highly efficient Triton MLA Kernel from the fantastic sglang project, enable much longer context length and slightly faster prefill/decode speed</li>
@@ -289,8 +286,8 @@ Integrated the highly efficient Triton MLA Kernel from the fantastic sglang proj
 </ul>
 <h4 id="benchmark-results"><a class="header" href="#benchmark-results">Benchmark Results</a></h4>
 <p>"6 experts" case is part of V0.3's preview</p>
-<p>| Prompt | hi (2) | 1K (969) | 2K (1930) | 4K (3846) | llama.cpp (8 experts) |</p>
-<div class="table-wrapper"><table><thead><tr><th>Output length</th><th>10tokens</th><th>300tokens</th><th>300tokens</th><th>300tokens</th><th>300tokens</th></tr></thead><tbody>
+<div class="table-wrapper"><table><thead><tr><th>Prompt</th><th>hi (2)</th><th>1K (969)</th><th>2K (1930)</th><th>4K (3846)</th><th>llama.cpp (8 experts)</th></tr></thead><tbody>
+<tr><td>Output length</td><td>10tokens</td><td>300tokens</td><td>300tokens</td><td>300tokens</td><td>300tokens</td></tr>
 <tr><td><strong>6 experts V0.2.0</strong></td><td></td><td></td><td></td><td></td><td></td></tr>
 <tr><td>Prefill token/s</td><td>13</td><td>105</td><td>102</td><td>88</td><td>CUDA OOM</td></tr>
 <tr><td>decode token/s</td><td>16.8</td><td>15.4</td><td>14.2</td><td>13.0</td><td>CUDA OOM</td></tr>
