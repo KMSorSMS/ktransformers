@@ -251,7 +251,7 @@ Apologies for the wait, but we've been cooking up something truly amazing!</p>
 <p>We also give our upcoming optimizations previews, including an Intel AMX-accelerated kernel and a selective expert activation method, which will significantly enhance performance. With V0.3-preview, we achieve up to 286 tokens/s for prefill, making it up to <strong>28× faster than llama.cpp</strong> for local inference.
 The binary distribution is available now and the source code will come ASAP! Check out the wheel package <a href="https://github.com/kvcache-ai/ktransformers/releases/download/v0.1.4/ktransformers-0.3.0rc0+cu126torch26fancy-cp311-cp311-linux_x86_64.whl">here</a></p>
 <blockquote>
-<p><strong>Feb 15, 2025</strong>: KTransformers V0.2.1: Longer Context (from 2K to 8K for 24GB VRAM) &amp; Faster Decoding (Up to 16 Tokens/s),update docs <a href="./doc/en/DeepseekR1_V3_tutorial.html">here</a> and <a href="https://kvcache-ai.github.io/ktransformers/">online books</a>.</p>
+<p><strong>Feb 15, 2025</strong>: KTransformers V0.2.1: Longer Context (from 4K to 8K for 24GB VRAM) &amp; Slightly Faster Speed （+15%) (Up to 16 Tokens/s), update docs <a href="./doc/en/DeepseekR1_V3_tutorial.html">here</a> and <a href="https://kvcache-ai.github.io/ktransformers/">online books</a>.</p>
 </blockquote>
 <p>We speed up the decode and prefill speed a littlt bit. The reason for the limited performance improvement mainly lies in the fact that the inference process is still constrained by the CPU's computational speed and memory bandwidth. The MLA part handled by the GPU accounts for a relatively small proportion.</p>
 <p>Besides the improvements in speed, we've also significantly updated the documentation to enhance usability, including:<br></p>
@@ -280,7 +280,7 @@ Memory: standard DDR5-4800 server DRAM (1 TB), each socket with 8×DDR5-4800</p>
 </ul>
 <h4 id="change-log"><a class="header" href="#change-log">Change Log</a></h4>
 <ul>
-<li>We extend the context length and add a subtle improvement:<br>
+<li>Longer Context (from 4K to 8K for 24GB VRAM) and Slightly Faster Speed （+15%):<br>
 Integrated the highly efficient Triton MLA Kernel from the fantastic sglang project, enable much longer context length and slightly faster prefill/decode speed</li>
 <li>We suspect the impressive improvement comes from the change of hardwre platform (4090D-&gt;4090)</li>
 </ul>
