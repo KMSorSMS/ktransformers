@@ -195,27 +195,46 @@ Our vision for KTransformers is to serve as a flexible platform for experimentin
 <li>
 <p>CUDA 12.1 and above, if you didn't have it yet, you may install from <a href="https://developer.nvidia.com/cuda-downloads">here</a>.</p>
 <pre><code class="language-sh"># Adding CUDA to PATH
-export PATH=/usr/local/cuda/bin:$PATH
-export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
-export CUDA_PATH=/usr/local/cuda
+if [ -d "/usr/local/cuda/bin" ]; then
+    export PATH=$PATH:/usr/local/cuda/bin
+fi
+
+if [ -d "/usr/local/cuda/lib64" ]; then
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/lib64
+    # Or you can add it to /etc/ld.so.conf and run ldconfig as root:
+    # echo "/usr/local/cuda-12.x/lib64" | sudo tee -a /etc/ld.so.conf
+    # sudo ldconfig
+fi
+
+if [ -d "/usr/local/cuda" ]; then
+    export CUDA_PATH=$CUDA_PATH:/usr/local/cuda
+fi
 </code></pre>
 </li>
 <li>
-<p>Linux-x86_64 with gcc, g++ and cmake</p>
+<p>Linux-x86_64 with gcc, g++ and cmake (using Ubuntu as an example)</p>
 <pre><code class="language-sh">sudo apt-get update
-sudo apt-get install gcc g++ cmake ninja-build
+sudo apt-get install build-essential cmake ninja-build
 </code></pre>
 </li>
 <li>
-<p>We recommend using <a href="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh">Conda</a> to create a virtual environment with Python=3.11 to run our program.</p>
+<p>We recommend using <a href="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh">Miniconda3</a> or <a href="https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh">Anaconda3</a> to create a virtual environment with Python=3.11 to run our program. Assuming your Anaconda installation directory is <code>~/anaconda3</code>, you should ensure that the version identifier of the GNU C++standard library used by Anaconda includes <code>GLIBCXX-3.4.32</code></p>
 <pre><code class="language-sh">conda create --name ktransformers python=3.11
 conda activate ktransformers # you may need to run ‘conda init’ and reopen shell first
+
+conda install -c conda-forge libstdcxx-ng # Anaconda provides a package called `libstdcxx-ng` that includes a newer version of `libstdc++`, which can be installed via `conda-forge`.
+
+strings ~/anaconda3/envs/ktransformers-0.3/lib/libstdc++.so.6 | grep GLIBCXX
 </code></pre>
 </li>
 <li>
-<p>Make sure that PyTorch, packaging, ninja is installed</p>
-<pre><code>pip install torch packaging ninja cpufeature numpy
+<p>Make sure that PyTorch, packaging, ninja is installed You can also <a href="https://pytorch.org/get-started/previous-versions/">install previous versions of PyTorch</a></p>
+<pre><code>pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+pip3 install packaging ninja cpufeature numpy
 </code></pre>
+</li>
+<li>
+<p>At the same time, you should download and install the corresponding version of flash-attention from https://github.com/Dao-AILab/flash-attention/releases.</p>
 </li>
 </ul>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
@@ -244,7 +263,7 @@ git submodule update
 </code></pre>
 </li>
 <li>
-<p>[Optional] If you want to run with website, please <a href="en/./doc/en/api/server/website.html">compile the website</a> before execute <code>bash install.sh</code></p>
+<p>[Optional] If you want to run with website, please <a href="en/./api/server/website.html">compile the website</a> before execute <code>bash install.sh</code></p>
 </li>
 <li>
 <p>For Linux</p>
@@ -271,7 +290,7 @@ bash install.sh # or `make dev_install`
 </ul>
 </li>
 <li>
-<p>If you are developer, you can make use of the makefile to compile and format the code. <br> the detailed usage of makefile is <a href="en/./doc/en/makefile_usage.html">here</a></p>
+<p>If you are developer, you can make use of the makefile to compile and format the code. <br> the detailed usage of makefile is <a href="en/./makefile_usage.html">here</a></p>
 </li>
 </ul>
 <h3 id="local-chat"><a class="header" href="#local-chat">Local Chat</a></h3>
@@ -635,7 +654,7 @@ can increase the number for longer answer (But be aware of OOM, and increase it 
 <p>The command <code>numactl -N 1 -m 1</code> aims to advoid data transfer between numa nodes<br>
 Attention! If you are testing R1 and it may skip thinking. So you can add arg: <code>--force_think true</code>. This is explained in <a href="en/DeepseekR1_V3_tutorial.html#faq">FAQ</a> part</p>
 <h4 id="dual-socket-version-64-cores"><a class="header" href="#dual-socket-version-64-cores">Dual socket version (64 cores)</a></h4>
-<p>Make suer before you install (use install.sh or <code>make dev_install</code>), setting the env var <code>USE_NUMA=1</code> by <code>export USE_NUMA=1</code> (if already installed, reinstall it with this env var set). You may check the doc <a href="en/./install.html">here</a> for install details. <br></p>
+<p>Make sure before you install (use install.sh or <code>make dev_install</code>), setting the env var <code>USE_NUMA=1</code> by <code>export USE_NUMA=1</code> (if already installed, reinstall it with this env var set). You may check the doc <a href="en/./install.html">here</a> for install details. <br></p>
 <p>Test Command:</p>
 <pre><code class="language-shell"># ---For those who have not installed ktransformers---
 # git clone https://github.com/kvcache-ai/ktransformers.git
@@ -698,6 +717,7 @@ Intel is currently the only CPU vendor that supports AMX-like instructions, whic
 <ul>
 <li>Official Docker images to simplify installation</li>
 <li>Fix the server integration for web API access</li>
+<li>Fix the local chat only accepting a single line prompt (currently \n begins generating prompt)</li>
 <li>Support for more quantization types, including the highly requested dynamic quantization from unsloth</li>
 </ul>
 <p>Stay tuned for more updates!</p>
@@ -1240,6 +1260,17 @@ DeepseekV2-Chat got 60 layers, if we got 2 GPUs, we can allocate 30 layers to ea
 <h2 id="1-starting-the-web-service"><a class="header" href="#1-starting-the-web-service">1. Starting the Web Service</a></h2>
 <h3 id="11-compiling-the-web-code"><a class="header" href="#11-compiling-the-web-code">1.1. Compiling the Web Code</a></h3>
 <p>Before you can compile the web code, make sure you have installed <a href="https://nodejs.org">Node.js</a> version 18.3 or higher</p>
+<p>Note: The version of Node.js in the Ubuntu or Debian GNU/Linux software repository is too low, causing compilation errors. Users can also install Node.js through the Nodesource repository, provided they uninstall the outdated version first.</p>
+<pre><code class="language-bash">
+  # sudo apt-get remove nodejs npm -y &amp;&amp; sudo apt-get autoremove -y
+  sudo apt-get update -y &amp;&amp; sudo apt-get install -y apt-transport-https ca-certificates curl gnupg
+  curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /usr/share/keyrings/nodesource.gpg
+  sudo chmod 644 /usr/share/keyrings/nodesource.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_23.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
+  sudo apt-get update -y
+  sudo apt-get install nodejs -y
+
+</code></pre>
 <p>Once npm is installed, navigate to the <code>ktransformers/website</code> directory:</p>
 <pre><code class="language-bash">cd ktransformers/website
 </code></pre>
@@ -1378,7 +1409,7 @@ Note KExpertsTorch is untested.</p>
 <blockquote>
 <p>ImportError: /mnt/data/miniconda3/envs/xxx/bin/../lib/libstdc++.so.6: version `GLIBCXX_3.4.30' not found (required by /home/xxx/xxx/ktransformers/./cpuinfer_ext.cpython-312-x86_64-linux-gnu.so)</p>
 </blockquote>
-<p>It may because of your conda env have no this version. Your can first exit your conda env by <code>conda deactivate</code> and use <code>whereis libstdc++.so.6</code> to find the path. And re enter your conda env and copy the .so by <code>cp &lt;path of outter libstdc++&gt; &lt;path of your conda env libstdc++&gt;</code></p>
+<p>Running <code>conda install -c conda-forge libstdcxx-ng</code> can solve the problem.</p>
 <div style="break-before: page; page-break-before: always;"></div><h2 id="hello-everyone-here-is-the-successfully-reproduced-environment-configuration-for-your-reference"><a class="header" href="#hello-everyone-here-is-the-successfully-reproduced-environment-configuration-for-your-reference">Hello everyone, here is the successfully reproduced environment configuration for your reference:</a></h2>
 <h3 id="case-1"><a class="header" href="#case-1">Case 1</a></h3>
 <ul>
