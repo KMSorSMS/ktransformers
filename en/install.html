@@ -41,6 +41,17 @@
         <script src="../toc.js"></script>
     </head>
     <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
     <div id="body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
@@ -118,7 +129,7 @@
                             <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
                             <i class="fa fa-search"></i>
                         </button>
                     </div>
@@ -206,13 +217,16 @@ fi
 </code></pre>
 </li>
 <li>
-<p>Linux-x86_64 with gcc, g++ and cmake (using Ubuntu as an example)</p>
+<p>Linux-x86_64 with gcc, g++&gt;=11 and cmake&gt;=3.25 (using Ubuntu as an example)</p>
+</li>
+<li>
+<p><strong>Note</strong>: The default CMake version in Ubuntu 22.04 LTS or higher may not support newer CUDA language dialects (e.g., CUDA 20). This can cause errors such as Target "cmTC_xxxxxx" requires the language dialect "CUDA20", but CMake does not know the compile flags to use to enable it. To resolve this, install a newer CMake version, for instance, by adding the Kitware APT repository.</p>
 <pre><code class="language-sh">sudo apt-get update 
 sudo apt-get install build-essential cmake ninja-build patchelf
 </code></pre>
 </li>
 <li>
-<p>We recommend using <a href="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh">Miniconda3</a> or <a href="https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh">Anaconda3</a> to create a virtual environment with Python=3.11 to run our program. Assuming your Anaconda installation directory is <code>~/anaconda3</code>, you should ensure that the version identifier of the GNU C++standard library used by Anaconda includes <code>GLIBCXX-3.4.32</code></p>
+<p>We recommend using <a href="https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh">Miniconda3</a> or <a href="https://repo.anaconda.com/archive/Anaconda3-2024.10-1-Linux-x86_64.sh">Anaconda3</a> to create a virtual environment with Python=3.11 to run our program. Assuming your Anaconda installation directory is <code>~/anaconda3</code>, you should ensure that the version identifier of the GNU C++standard library used by Anaconda includes <code>GLIBCXX_3.4.32</code></p>
 <pre><code class="language-sh">conda create --name ktransformers python=3.11
 conda activate ktransformers # you may need to run ‘conda init’ and reopen shell first
 
@@ -290,7 +304,7 @@ git submodule update --init --recursive
 </ul>
 </li>
 <li>
-<p>For Windows (Windows native temprarily deprecated, please try WSL)</p>
+<p>For Windows (Windows native temporarily deprecated, please try WSL)</p>
 <pre><code class="language-shell">install.bat
 </code></pre>
 </li>
@@ -335,7 +349,7 @@ python -m ktransformers.local_chat --model_path deepseek-ai/DeepSeek-V2-Lite-Cha
 <p><code>--gguf_path</code> (required): Path of a directory containing GGUF files which could that can be downloaded from <a href="https://huggingface.co/mzwing/DeepSeek-V2-Lite-Chat-GGUF/tree/main">Hugging Face</a>. Note that the directory should only contains GGUF of current model, which means you need one separate directory for each model.</p>
 </li>
 <li>
-<p><code>--optimize_config_path</code> (required except for Qwen2Moe and DeepSeek-V2): Path of YAML file containing optimize rules. There are two rule files pre-written in the <a href="ktransformers/optimize/optimize_rules">ktransformers/optimize/optimize_rules</a> directory for optimizing DeepSeek-V2 and Qwen2-57B-A14, two SOTA MoE models.</p>
+<p><code>--optimize_config_path</code> (required except for Qwen2Moe and DeepSeek-V2): Path of YAML file containing optimize rules. There are two rule files pre-written in the <a href="https://github.com/kvcache-ai/ktransformers/tree/main/ktransformers/optimize/optimize_rules">ktransformers/optimize/optimize_rules</a> directory for optimizing DeepSeek-V2 and Qwen2-57B-A14, two SOTA MoE models.</p>
 </li>
 <li>
 <p><code>--max_new_tokens</code>: Int (default=1000). Maximum number of new tokens to generate.</p>
@@ -506,8 +520,8 @@ python -m ktransformers.local_chat --model_name deepseek-ai/DeepSeek-V2-Chat-062
         </script>
 
         <script src="../ace.js"></script>
-        <script src="../editor.js"></script>
         <script src="../mode-rust.js"></script>
+        <script src="../editor.js"></script>
         <script src="../theme-dawn.js"></script>
         <script src="../theme-tomorrow_night.js"></script>
 
