@@ -12,8 +12,8 @@
 #include <iostream>
 #include <vector>
 
+#include "../../cpu_backend/shared_mem_buffer.h"
 #include "../common.hpp"
-#include "../cpu_backend/shared_mem_buffer.h"
 #include "../moe-tp.hpp"
 #include "api/common.h"
 #include "api/mat_kernel.h"
@@ -643,8 +643,19 @@ class MOE_KERNEL_TP
                   expert_ids[q_idx * k + j] >= config_.expert_num) {
                 continue;
               }
-              sum += weights[q_idx * k + j] * ((float*)m_local_down_output_ptr_[expert_ids[q_idx * k + j]])
-                                                  [m_local_pos_[q_idx][j] * config_.hidden_size + e];
+              float* aaa = m_local_down_output_ptr_[expert_ids[q_idx * k + j]];
+              if (aaa < (float*)0x10000) {
+                printf("%lld %d %d from %d %ld aaa=%lx local_pos=%d gpu_exp=%d\n", expert_ids[q_idx * k + j], q_idx, j,
+                       q_idx * k + j, m_local_down_output_ptr_.size(), aaa, m_local_pos_[q_idx][j],
+                       config_.num_gpu_experts);
+                if (expert_ids[q_idx * k + j] < 0)
+                  printf("<0\n");
+                else
+                  printf(">0");
+                continue;
+              }
+              float bb = aaa[m_local_pos_[q_idx][j] * config_.hidden_size + e];
+              sum += weights[q_idx * k + j] * bb;
             }
             ((float*)output)[q_idx * config_.hidden_size + e] = sum;
           }
@@ -741,17 +752,22 @@ class TP_MOE<MOE_KERNEL_TP<K, T>> : public TP_MOE_Common<MOE_KERNEL_TP<K, T>> {
     }
   }
 
-  void merge_results(int qlen, void* output) {
+  void merge_results(int qlen, void* output, bool incremental) {
     // #ifdef FORWARD_TIME_PROFILE
     //     forward_perf_start();
     // #endif
     auto pool = this->config.pool;
-    auto merge_fn = [this, output](int token_nth) {
+    auto merge_fn = [this, output, incremental](int token_nth) {
       auto& local_output_numa = this->local_output_numa;
       auto& tp_configs = this->tp_configs;
       auto& tp_count = this->tp_count;
       auto& config = this->config;
       float* merge_to = local_output_numa[0] + token_nth * tp_configs[0].hidden_size;
+      if (incremental) {
+        for (int e = 0; e < config.hidden_size; e++) {
+          merge_to[e] += ggml_bf16_to_fp32(((ggml_bf16_t*)output + token_nth * config.hidden_size)[e]);
+        }
+      }
 
       for (int i = 1; i < tp_count; i++) {
         float* merge_from = local_output_numa[i] + token_nth * tp_configs[i].hidden_size;
@@ -789,6 +805,8 @@ class TP_MOE<MOE_KERNEL_TP<K, T>> : public TP_MOE_Common<MOE_KERNEL_TP<K, T>> {
     //     perf_report();
     // #endif
   }
+
+  void merge_results(int qlen, void* output) { merge_results(qlen, output, false); }
 };
 
 #endif
